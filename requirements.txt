@@ -1,0 +1,39 @@
+# Core
+numpy
+pandas
+scikit-learn
+matplotlib
+seaborn
+
+# ML
+tensorflow
+keras
+torch
+ultralytics
+
+# Geospatial
+earthengine-api
+geemap
+rasterio
+geopandas
+shapely
+
+# Data fetch
+requests
+beautifulsoup4
+pdfplumber
+
+# Dashboard
+streamlit
+plotly
+folium
+streamlit-folium
+
+# Utilities
+python-dotenv
+tqdm
+Pillow
+opencv-python
+
+# AI
+google-generativeai
