@@ -20,18 +20,10 @@ ENV/
 .ipynb_checkpoints/
 *.ipynb
 
-# Data directories (raw imagery and cached data can be large)
-data/raw_imagery/
-data/weather_cache/
-data/idsp_bulletins/
-
-# Model weights (large binary files)
-models/
-*.h5
-*.pt
-*.pth
-*.pkl
-*.joblib
+# Model weights (large binary files - uncomment if needed)
+# *.h5
+# *.pt
+# *.pth
 
 # OS files
 .DS_Store

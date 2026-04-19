@@ -1,0 +1,410 @@
+year,iso_week,disease_raw,disease_bucket,case_count,source_pdf,page
+2023,22,"KN/DVA/2023/22/450 | Karnataka | Davanagere | Food
+Poisoning | 15 | 00 | 02-06-23 | 03-06-23 | Under
+Surveillance | Case",other,2023,22nd 2023.pdf,4
+2023,22,"KN/KPP/2023/22/452 | Karnataka | Koppal | Cholera | 32 | 00 | 03-06-23 | 04-06-23 | Under
+Control | Cases reported from ",lepto_cholera,2023,22nd 2023.pdf,5
+2024,22,"KN/CMN/2024/22/1066 | Karnataka | Chamarajanag
+ar | Acute
+Gastroenteriti
+s | 34 | 0 | 31-05-2024 | Under
+Surveillance | ",other,2024,22nd 2024.pdf,10
+2024,22,"KN/CMN/2024/22/1067 | Karnataka | Chamarajanag
+ar | Cholera | 45 | 0 | 27-05-2024 | Under
+Surveillance | Cases reported ",lepto_cholera,2024,22nd 2024.pdf,10
+2024,22,"KN/CKR/2024/22/1069 | Karnataka | Chikballapur | Acute
+Diarrheal
+Disease | 18 | 0 | 27-05-2024 | 27-05-2024 | Under
+Surv",lepto_cholera,2024,22nd 2024.pdf,11
+2024,22,"KN/CKR/2024/22/1070 | Karnataka | Chikballapur | Acute
+Diarrheal
+Disease | 41 | 0 | 31-05-2024 | 31-05-2024 | Under
+Cont",lepto_cholera,2024,22nd 2024.pdf,11
+2024,22,"KN/MYS/2024/22/1072 | Karnataka | Mysuru | Cholera | 0 | 28-05-2024 | 29-05-2024 | Under
+Surveillance | Cases were repor",lepto_cholera,2024,22nd 2024.pdf,12
+2023,23,"KN/BAU/2023/23/491 | Karnataka | BBMP | Acute
+Diarrheal
+Disease | 99 | 00 | 07-06-23 | 10-06-23 | Under
+Control | Cases ",lepto_cholera,191,23rd 2023.pdf,4
+2023,23,"KN/HAS/2023/23/492 | Karnataka | Hassan | Acute
+Diarrheal
+Disease | 12 | 00 | 06-06-23 | 07-06-23 | Under
+Control | Case",lepto_cholera,2023,23rd 2023.pdf,4
+2023,23,"KN/KPP/2023/23/494 | Karnataka | Koppal | Cholera | 34 | 00 | 05-06-23 | Under
+Control | Cases reported from Village Bas",lepto_cholera,2023,23rd 2023.pdf,5
+2023,23,"KN/KPP/2023/23/496 | Karnataka | Koppal | Cholera | 124 | 01 | 06-06-2023 | 07-06-23 | Under
+Surveillance | Cases report",lepto_cholera,2023,23rd 2023.pdf,6
+2023,23,"KN/KPP/2023/23/498 | Karnataka | Koppal | Cholera | 27 | 00 | 06-06-23 | 08-06-23 | Under
+Surveillance | Cases reported ",lepto_cholera,2023,23rd 2023.pdf,7
+2023,23,"KN/RCR/2023/23/500 | Karnataka | Raichur | Acute
+Diarrheal
+Disease | 21 | 00 | 07-06-23 | Under
+Control | Cases reported",lepto_cholera,2023,23rd 2023.pdf,8
+2023,23,"KN/UDU/2023/23/511 | Karnataka | Udupi | Acute
+Diarrheal
+Disease | 03 | 02 | 25-05-23 | Under
+Control | Cases reported f",lepto_cholera,2023,23rd 2023.pdf,13
+2024,23,"KN/CKR/2024/23/1125 | Karnataka | Chikballapur | Human
+Rabies | 1 | 1 | 04-06-2024 | Under
+Control | Case was reported f",other,2024,23rd 2024.pdf,6
+2024,23,"KN/GDG/2024/23/1127 | Karnataka | Gadag | Acute
+Diarrheal
+Disease | 46 | 0 | 01-06-2024 | 06-06-2024 | Under
+Surveillanc",lepto_cholera,2024,23rd 2024.pdf,7
+2024,23,"KN/MYS/2024/23/1128 | Karnataka | Mysuru | Cholera | 62 | 0 | 04-06-2024 | 04-06-2024 | Under
+Control | Cases were repor",lepto_cholera,2024,23rd 2024.pdf,7
+2023,24,"KN/DHA/2023/24/523 | Karnataka | Dharwad | Acute
+Diarrheal
+Disease | 30 | 00 | 12-06-23 | Under
+Surveillance | Cases rep",lepto_cholera,2023,24th 2023.pdf,7
+2023,24,"collected and sent to PHI Lab, Bengaluru. | 24th 2023.pdf | 8",other,2023,24th 2023.pdf,8
+2023,24,"KN/KPP/2023/24/525 | Karnataka | Koppal | Cholera | 25 | 00 | 15-06-23 | Under
+Surveillance | Cases reported from Villag",lepto_cholera,2023,24th 2023.pdf,8
+2023,24,"KN/SHI/2023/24/527 | Karnataka | Shivamogga | Cholera | 124 | 00 | 12-06-23 | 16-06-23 | Under
+Surveillance | Cases repo",lepto_cholera,12,24th 2023.pdf,9
+2023,24,"KN/VIJ/2023/24/529 | Karnataka | Vijayanagara | Suspected
+Human
+Rabies | 01 | 01 | 13-06-23 | 13-06-23 | Under
+Surveilla",other,2023,24th 2023.pdf,10
+2023,24,"KN/UDU/2023/24/537 | Karnataka | Udupi | Suspected
+Human Rabies | 01 | 01 | 06-06-23 | Under
+Surveillance | Case reporte",other,2023,24th 2023.pdf,14
+2023,24,"KN/VIJ/2023/24/538 | Karnataka | Vijayapur | Acute
+Diarrheal
+Disease | 41 | 00 | 02-06-23 | Under
+Surveillance | Cases r",lepto_cholera,2023,24th 2023.pdf,14
+2024,24,"KN/BEG/2024/24/1201 | Karnataka | Belagavi | Cholera | 118 | 0 | 16-06-2024 | Under
+Surveillance | Cases reported from S",lepto_cholera,2024,24th 2024.pdf,12
+2024,24,"KN/GUL/2024/24/1203 | Karnataka | Kalaburagi | Acute
+Diarrheal
+Disease | 38 | 0 | 12-06-2024 | Under
+Control | Cases rep",lepto_cholera,2024,24th 2024.pdf,13
+2024,24,"KN/RCR/2024/24/1204 | Karnataka | Raichur | Malaria | 49 | 0 | 13-06-2024 | Under
+Surveillance | Cases reported from Hea",dengue_malaria,2024,24th 2024.pdf,13
+2024,24,"KN/HAS/2024/24/1243 | Karnataka | Hassan | Human Rabies | 1 | 1 | 04-06-2024 | Under
+Control | Cases reported from Nittu",other,2024,24th 2024.pdf,28
+2024,24,"NIMHANS, Bengaluru. | 24th 2024.pdf | 28",other,2024,24th 2024.pdf,28
+2023,25,"KN/BEL/2023/25/568 | Karnataka | Ballari | Typhoid | 47 | 00 | 23-06-2023 | Under
+Control | Cases of fever reported from",lepto_cholera,2023,25th 2023.pdf,12
+2023,25,"KN/BEG/2023/25/569 | Karnataka | Belagavi | Acute
+Diarrheal
+Disease | 24 | 00 | 21-06-2023 | Under
+Control | Cases repor",lepto_cholera,2023,25th 2023.pdf,12
+2023,25,"KN/DHA/2023/25/571 | Karnataka | Dharwad | Food
+Poisoning | 32 | 00 | 12-06-2023 | 22-06-2023 | Under
+Control | Cases re",other,2023,25th 2023.pdf,13
+2023,25,"KN/KPP/2023/25/573 | Karnataka | Koppal | Cholera | 27 | 00 | 21-06-2023 | 24-06-2023 | Under
+Control | Cases reported f",lepto_cholera,2023,25th 2023.pdf,14
+2023,25,"KN/CKM/2023/25/575 | Karnataka | Chikkamagaluru | Dengue | 14 | 00 | 13-06-23 | 17-06-23 | Under
+Surveillance | Cases re",dengue_malaria,2023,25th 2023.pdf,15
+2023,25,"KN/BEL/2023/25/577 | Karnataka | Ballari | Typhoid
+Fever | 41 | 00 | 19-06-23 | 19-06-23 | Under
+Surveillance | Cases re",lepto_cholera,7,25th 2023.pdf,16
+2023,25,"KN/SHI/2023/25/578 | Karnataka | Shivamogga | Rabies | 01 | 01 | 22-06-23 | 22-06-23 | Under
+Surveillance | Case reporte",other,2023,25th 2023.pdf,16
+2024,25,"KN/KPP/2024/25/1271 | Karnataka | Koppal | Acute
+Diarrheal
+Disease | 43 | 1 | 18-06-2024 | Under
+Surveillance | Cases we",lepto_cholera,2024,25th 2024.pdf,9
+2024,25,"collected and sent to BMCRI, Bangalore and | 25th 2024.pdf | 10",other,2024,25th 2024.pdf,10
+2024,25,"KN/MNY/2024/25/1273 | Karnataka | Mandya | Acute
+Diarrheal
+Disease | 19 | 0 | 20-06-2024 | 20-06-2024 | Under
+Control | ",lepto_cholera,2024,25th 2024.pdf,10
+2024,25,"KN/MNY/2024/25/1274 | Karnataka | Mandya | Acute
+Diarrheal
+Disease | 13 | 0 | 16-06-2024 | 17-06-2024 | Under
+Control | ",lepto_cholera,2024,25th 2024.pdf,10
+2024,25,"KN/TUM/2024/25/1276 | Karnataka | Tumakuru | Human
+Rabies | 1 | 1 | 18-06-2024 | 18-06-2024 | Under
+Control | Case was r",other,2024,25th 2024.pdf,11
+2024,25,"KN/KRW/2024/25/1277 | Karnataka | Uttar Kannad | Acute
+Diarrheal
+Disease | 13 | 0 | 19-06-2024 | 20-06-2024 | Under
+Surv",lepto_cholera,2024,25th 2024.pdf,11
+2023,26,"KN/BEL/2023/26/630 | Karnataka | Ballari | Acute
+Diarrheal
+Disease | 43 | 00 | 29-06-2023 | Under
+Surveillance | Cases r",lepto_cholera,2023,26th 2023.pdf,10
+2023,26,"KN/DVA/2023/26/631 | Karnataka | Davangere | Acute
+Diarrheal
+Disease | 88 | 00 | 28-06-2023 | Under
+Control | Cases repo",lepto_cholera,2023,26th 2023.pdf,10
+2023,26,"KN/KPP/2023/26/633 | Karnataka | Koppal | Acute
+Diarrheal
+Disease | 34 | 00 | 26-06-2023 | Under
+Control | Cases reporte",lepto_cholera,2023,26th 2023.pdf,11
+2023,26,"KN/RCR/2023/26/634 | Karnataka | Raichur | Acute
+Diarrheal
+Disease | 88 | 00 | 02-07-2023 | Under
+Control | Cases report",lepto_cholera,2023,26th 2023.pdf,11
+2023,26,"KN/UDU/2023/26/635 | Karnataka | Udupi | Acute
+Diarrheal
+Disease | 11 | 00 | 27-06-2023 | Under
+Control | Cases reported",lepto_cholera,2023,26th 2023.pdf,11
+2023,26,"KN/YDI/2023/26/637 | Karnataka | Yadgir | Acute
+Diarrheal
+Disease | 55 | 00 | 30-06-2023 | Under
+Control | Cases reporte",lepto_cholera,2023,26th 2023.pdf,12
+2023,26,"KN/BAU/2023/26/638 | Karnataka | BBMP | Acute
+Diarrheal
+Disease | 65 | 00 | 28-06-23 | Under
+Surveillance | Cases report",lepto_cholera,5,26th 2023.pdf,12
+2024,26,"KN/BEL/2024/26/1319 | Karnataka | Ballari | Acute
+Diarrheal
+Disease | 15 | 0 | 24-06-2024 | 25-06-2024 | Under
+Surveilla",lepto_cholera,2024,26th 2024.pdf,7
+2024,26,"KN/BEG/2024/26/1320 | Karnataka | Belagavi | Cholera | 10 | 0 | 24-06-2024 | 24-06-2024 | Under
+Control | Cases reported",lepto_cholera,2024,26th 2024.pdf,7
+2024,26,"KN/KOL/2024/26/1322 | Karnataka | Kolar | Cholera | 30 | 0 | 24-06-2024 | 24-06-2024 | Under
+Control | Cases reported fr",lepto_cholera,2024,26th 2024.pdf,8
+2024,26,RL Bengaluru Medical College and Research | 26th 2024.pdf | 8,other,2024,26th 2024.pdf,8
+2024,26,"KN/RCR/2024/26/1323 | Karnataka | Raichur | Acute
+Diarrheal
+Disease | 13 | 0 | 27-06-2024 | 28-06-2024 | Under
+Control |",lepto_cholera,2024,26th 2024.pdf,8
+2024,26,"KN/UDU/2024/26/1325 | Karnataka | Udupi | Leptospirosis | 19 | 0 | 29-06-2024 | 30-06-2024 | Under
+Control | Cases repor",lepto_cholera,2024,26th 2024.pdf,9
+2024,26,"KN/VJP/2024/26/1326 | Karnataka | Vijayapura | Cholera | 47 | 0 | 18-06-2024 | 24-06-2024 | Under
+Surveillance | Cases r",lepto_cholera,2024,26th 2024.pdf,9
+2024,26,"Bengaluru, which was negative by RT-PCR. | 26th 2024.pdf | 18",other,2024,26th 2024.pdf,18
+2023,27,"KN/BGK/2023/27/690 | Karnataka | Bagalkot | Acute
+Diarrheal
+Disease | 24 | 00 | 02-07-23 | 03-07-23 | Under
+Control | Ca",lepto_cholera,2023,27th 2023.pdf,10
+2023,27,"KN/VIJ/2023/27/692 | Karnataka | Vijayapura | Rabies | 01 | 01 | 06-07-23 | 06-07-23 | Under
+Surveillance | Case reporte",other,2023,27th 2023.pdf,11
+2024,27,KN/GUL/2024/27/1402 | Karnataka | Kalaburagi | Food Poisoning | 47 | 0 | 02-07-2024 | 02-07-2024 | 27th 2024.pdf | 9,other,2024,27th 2024.pdf,9
+2024,27,"KN/GUL/2024/27/1403 | Karnataka | Kalaburagi | 16 | 0 | 30-06-2024 | 01-07-2024 | sent to Cholera Combat Team Office, | ",lepto_cholera,2024,27th 2024.pdf,9
+2024,27,KN/MNY/2024/27/1404 | Karnataka | Mandya | 21 | 0 | 03-07-2024 | 03-07-2024 | DSL lab Mandya respectively. Stool samples,other,2024,27th 2024.pdf,9
+2024,27,KN/RCR/2024/27/1405 | Karnataka | Raichur | 15 | 0 | 01-07-2024 | 03-07-2024 | Jalahalli CHC respectively. Stool samples,other,2024,27th 2024.pdf,10
+2024,27,KN/RCR/2024/27/1406 | Karnataka | Raichur | Food Poisoning | 32 | 0 | 05-07-2024 | 06-07-2024 | Raichur. It came negativ,lepto_cholera,2024,27th 2024.pdf,10
+2024,27,KN/SHI/2024/27/1407 | Karnataka | Shivamogga | Zika Virus | 3 | 0 | 04-07-2024 | 04-07-2024 | 27th 2024.pdf | 10,other,2024,27th 2024.pdf,10
+2024,27,Bengaluru. 3 samples came positive for the | 27th 2024.pdf | 10,other,3,27th 2024.pdf,10
+2024,27,KN/UDU/2024/27/1408 | Karnataka | Udupi | 12 | 0 | 30-06-2024 | 01-07-2024 | stools. Total 3 water samples were collecte,other,3,27th 2024.pdf,11
+2023,28,"KN/CHI/2023/28/731 | Karnataka | Chitradurga | Acute
+Diarrheal
+Disease | 34 | 00 | 14-07-23 | Under
+Surveillance | Cases",lepto_cholera,2023,28th 2023.pdf,8
+2023,28,"KN/GUL/2023/28/732 | Karnataka | Kalaburagi | Acute
+Diarrheal
+Disease | 10 | 00 | 11-07-23 | Under
+Control | Cases repor",lepto_cholera,2023,28th 2023.pdf,8
+2023,28,"KN/RCR/2023/28/734 | Karnataka | Raichur | Acute
+Diarrheal
+Disease | 17 | 00 | 11-07-23 | Under
+Control | Cases reported",lepto_cholera,2023,28th 2023.pdf,9
+2023,28,"KN/TUM/2023/28/735 | Karnataka | Tumkur | Acute
+Diarrheal
+Disease | 25 | 00 | 16-07-23 | Under
+Surveillance | Cases repo",lepto_cholera,2023,28th 2023.pdf,9
+2024,28,"KN/BLR/2024/28/1478 | Karnataka | Ballari | Cholera | 29 | 0 | 14-07-2024 | Under
+Surveillance | Cases reported from Hea",lepto_cholera,2024,28th 2024.pdf,14
+2024,28,"KN/BEG/2024/28/1479 | Karnataka | Belagavi | Cholera | 49 | 0 | 09-07-2024 | Under
+Control | Cases reported from Shindik",lepto_cholera,2024,28th 2024.pdf,14
+2024,28,"KN/HSN/2024/28/1481 | Karnataka | Hassan | Dengue | 3 | 3 | 06-07-2024 | 09-07-2024 | Under
+Control | Cases reported fro",dengue_malaria,2024,28th 2024.pdf,15
+2024,28,"KN/DEV/2024/28/1544 | Karnataka | Davangere | Acute
+Gastroenteritis | 67 | 0 | 03-07-2024 | Under
+Control | Cases report",lepto_cholera,2024,28th 2024.pdf,35
+2023,29,"KN/CMN/2023/29/785 | Karnataka | Chamarajanagar | Others | 25 | 00 | 18-07-23 | Under
+Control | Cases reported from Mora",other,2023,29th 2023.pdf,13
+2023,29,"KN/HAV/2023/29/786 | Karnataka | Haveri | Acute
+Diarrheal
+Disease | 17 | 00 | 19-07-23 | Under
+Control | Cases reported ",lepto_cholera,2023,29th 2023.pdf,13
+2023,29,"KN/TUM/2023/29/788 | Karnataka | Tumkur | Acute
+Diarrheal
+Disease | 33 | 00 | 16-07-23 | 17-07-23 | Under
+Control | Case",lepto_cholera,2023,29th 2023.pdf,14
+2023,29,"Agrahara Layout limits, Bangalore North, Bangalore urban | 29th 2023.pdf | 22",other,2023,29th 2023.pdf,22
+2024,29,"KN/MND/2024/29/1579 | Karnataka | Mandya | Fever | 21 | 0 | 19-07-2024 | 19-07-2024 | Under
+Control | Cases were reporte",other,2024,29th 2024.pdf,11
+2024,29,"KN/RCR/2024/29/1580 | Karnataka | Raichur | Acute
+Diarrheal
+Disease | 50 | 0 | 20-07-2024 | 21-07-2024 | Under
+Control |",lepto_cholera,2024,29th 2024.pdf,11
+2024,29,"KN/YDG/2024/29/1582 | Karnataka | Yadgir | Cholera | 71 | 0 | 20-07-2024 | 20-07-2024 | Under
+Control | Cases were repor",lepto_cholera,2024,29th 2024.pdf,12
+2023,30,"KN/BDR/2023/30/826 | Karnataka | Bidar | Acute
+Diarrheal
+Disease | 16 | 00 | 29-07-23 | Under
+Surveillance | Cases repor",lepto_cholera,2023,30th 2023.pdf,7
+2023,30,"KN/BDR/2023/30/827 | Karnataka | Bidar | Acute
+Diarrheal
+Disease | 19 | 00 | 30-07-23 | Under
+Surveillance | Cases repor",lepto_cholera,2023,30th 2023.pdf,7
+2023,30,"KN/CMN/2023/30/853 | Karnataka | Chamarajanag
+ar | Acute Gastritis | 25 | 00 | 16-07-23 | Under
+Surveillance | Cases rep",other,2023,30th 2023.pdf,15
+2024,30,"KN/YDG/2024/30/1684 | Karnataka | Yadgir | Acute
+Diarrheal
+Disease | 27 | 0 | 25-07-2024 | 26-07-2024 | Under
+Control | ",lepto_cholera,2024,30th 2024.pdf,17
+2023,31,KN/CHI/2024/31/1796 | Karnataka | Chikkamagaluru | 45 | 0 | 30-07-2024 | 31-07-2024 | DPHL Chikkamangaluru. Stool sample,other,2024,31st 2023.pdf,9
+2023,31,KN/CHI/2024/31/1797 | Karnataka | Chikkamagaluru | 64 | 0 | 29-07-2024 | 30-07-2024 | DPHL Chikkamangaluru. Stool sample,other,2024,31st 2023.pdf,9
+2023,31,KN/RCR/2024/31/1798 | Karnataka | Raichur | 52 | 0 | 30-07-2024 | 30-07-2024 | 31st 2023.pdf | 10,other,2024,31st 2023.pdf,10
+2024,31,KN/CHI/2024/31/1796 | Karnataka | Chikkamagaluru | 45 | 0 | 30-07-2024 | 31-07-2024 | DPHL Chikkamangaluru. Stool sample,other,2024,31st 2024.pdf,9
+2024,31,KN/CHI/2024/31/1797 | Karnataka | Chikkamagaluru | 64 | 0 | 29-07-2024 | 30-07-2024 | DPHL Chikkamangaluru. Stool sample,other,2024,31st 2024.pdf,9
+2024,31,KN/RCR/2024/31/1798 | Karnataka | Raichur | 52 | 0 | 30-07-2024 | 30-07-2024 | 31st 2024.pdf | 10,other,2024,31st 2024.pdf,10
+2023,32,"KN/CHI/2023/32/922 | Karnataka | Chitradurga | Acute
+Diarrheal
+Disease | 21 | 00 | 12-08-23 | Under
+Surveillance | Cases",lepto_cholera,2023,32nd 2023.pdf,6
+2023,32,"KN/BAU/2023/32/944 | Karnataka | Bengaluru
+Urban | Cholera | 10 | 00 | 02-08-23 | Under
+Control | Cases were reported fr",lepto_cholera,33,32nd 2023.pdf,13
+2023,32,District Bengaluru Urban. Cases presented with loose stools | 32nd 2023.pdf | 13,other,2023,32nd 2023.pdf,13
+2024,32,"KN/KOL/2024/32/1895 | Karnataka | Kolar | Food
+Poisoning | 19 | 0 | 09-08-2024 | 09-08-2024 | Under
+Surveillance | Cases",other,2024,32nd 2024.pdf,13
+2023,33,KN/BGV/2024/33/1998 | Karnataka | Belagavi | 99 | 1 | 12-08-2024 | 12-08-2024 | 33rd 2023.pdf | 11,other,2024,33rd 2023.pdf,11
+2023,33,"District Anekal, District Bengaluru Urban. | 33rd 2023.pdf | 11",other,2023,33rd 2023.pdf,11
+2023,33,Bengaluru | Under | 33rd 2023.pdf | 11,other,2023,33rd 2023.pdf,11
+2023,33,"KN/BNG/2024/33/1999 | Karnataka | Zika Virus | 7 | 0 | 14-08-2024 | 17-08-2024 | pool samples were sent to NIV Pune, whi",other,2024,33rd 2023.pdf,11
+2023,33,KN/RIC/2024/33/2000 | Karnataka | Raichur | Chikungunya | 23 | 0 | 12-08-2024 | 13-08-2024 | 33rd 2023.pdf | 12,dengue_malaria,2024,33rd 2023.pdf,12
+2023,33,KN/VIJ/2024/33/2001 | Karnataka | Vijayapura | Cholera | 30 | 0 | 12-08-2024 | 13-08-2024 | 33rd 2023.pdf | 12,lepto_cholera,2024,33rd 2023.pdf,12
+2024,33,KN/BGV/2024/33/1998 | Karnataka | Belagavi | 99 | 1 | 12-08-2024 | 12-08-2024 | 33rd 2024.pdf | 11,other,2024,33rd 2024.pdf,11
+2024,33,"District Anekal, District Bengaluru Urban. | 33rd 2024.pdf | 11",other,2024,33rd 2024.pdf,11
+2024,33,Bengaluru | Under | 33rd 2024.pdf | 11,other,2024,33rd 2024.pdf,11
+2024,33,"KN/BNG/2024/33/1999 | Karnataka | Zika Virus | 7 | 0 | 14-08-2024 | 17-08-2024 | pool samples were sent to NIV Pune, whi",other,2024,33rd 2024.pdf,11
+2024,33,KN/RIC/2024/33/2000 | Karnataka | Raichur | Chikungunya | 23 | 0 | 12-08-2024 | 13-08-2024 | 33rd 2024.pdf | 12,dengue_malaria,2024,33rd 2024.pdf,12
+2024,33,KN/VIJ/2024/33/2001 | Karnataka | Vijayapura | Cholera | 30 | 0 | 12-08-2024 | 13-08-2024 | 33rd 2024.pdf | 12,lepto_cholera,2024,33rd 2024.pdf,12
+2023,34,"KN/KLB/2024/34/2060 | Karnataka | Kalaburagi | Acute
+Diarrheal
+Disease | 23 | 0 | 21-08-2024 | Under
+Control | Cases wer",lepto_cholera,2060,34th 2023.pdf,9
+2023,34,"KN/RIC/2024/34/2061 | Karnataka | Raichur | Dengue | 31 | 0 | 20-08-2024 | Under
+Control | Cases were reported from Heal",dengue_malaria,2061,34th 2023.pdf,9
+2023,34,"KN/TUM/2024/34/2063 | Karnataka | Tumakuru | Food
+Poisoning | 21 | 0 | 20-08-2024 | Under
+Control | Cases were reported ",other,2063,34th 2023.pdf,10
+2024,34,"KN/KLB/2024/34/2060 | Karnataka | Kalaburagi | Acute
+Diarrheal
+Disease | 23 | 0 | 21-08-2024 | Under
+Control | Cases wer",lepto_cholera,2060,34th 2024.pdf,9
+2024,34,"KN/RIC/2024/34/2061 | Karnataka | Raichur | Dengue | 31 | 0 | 20-08-2024 | Under
+Control | Cases were reported from Heal",dengue_malaria,2061,34th 2024.pdf,9
+2024,34,"KN/TUM/2024/34/2063 | Karnataka | Tumakuru | Food
+Poisoning | 21 | 0 | 20-08-2024 | Under
+Control | Cases were reported ",other,2063,34th 2024.pdf,10
+2023,35,"Bangalore lab, which was negative for any | 35th 2023.pdf | 8",other,2023,35th 2023.pdf,8
+2023,35,"KN/DAV/2024/35/2140 | Karnataka | Davangere | Acute
+Diarrheal
+Disease | 86 | 0 | 29-08-2024 | 31-08-2024 | Under
+Surveil",lepto_cholera,2140,35th 2023.pdf,8
+2023,35,"KN/DAV/2024/35/2141 | Karnataka | Davangere | Acute
+Diarrheal
+Disease | 30 | 0 | 24-08-2024 | 26-08-2024 | Under
+Control",lepto_cholera,2141,35th 2023.pdf,8
+2023,35,"KN/MND/2024/35/2143 | Karnataka | Mandya | Acute
+Diarrheal
+Disease | 27 | 1 | 27-08-2024 | Under
+Surveillance | Cases we",lepto_cholera,2143,35th 2023.pdf,9
+2023,35,"KN/TUM/2024/35/2144 | Karnataka | Tumakuru | Acute
+Diarrheal
+Disease | 41 | 1 | 27-08-2024 | Under
+Surveillance | Cases ",lepto_cholera,2144,35th 2023.pdf,9
+2024,35,"Bangalore lab, which was negative for any | 35th 2024.pdf | 8",other,2024,35th 2024.pdf,8
+2024,35,"KN/DAV/2024/35/2140 | Karnataka | Davangere | Acute
+Diarrheal
+Disease | 86 | 0 | 29-08-2024 | 31-08-2024 | Under
+Surveil",lepto_cholera,2140,35th 2024.pdf,8
+2024,35,"KN/DAV/2024/35/2141 | Karnataka | Davangere | Acute
+Diarrheal
+Disease | 30 | 0 | 24-08-2024 | 26-08-2024 | Under
+Control",lepto_cholera,2141,35th 2024.pdf,8
+2024,35,"KN/MND/2024/35/2143 | Karnataka | Mandya | Acute
+Diarrheal
+Disease | 27 | 1 | 27-08-2024 | Under
+Surveillance | Cases we",lepto_cholera,2143,35th 2024.pdf,9
+2024,35,"KN/TUM/2024/35/2144 | Karnataka | Tumakuru | Acute
+Diarrheal
+Disease | 41 | 1 | 27-08-2024 | Under
+Surveillance | Cases ",lepto_cholera,2144,35th 2024.pdf,9
+2023,36,"KN/UTK/2024/36/2205 | Karnataka | Uttar Kannad | Acute
+Diarrheal
+Disease | 91 | 1 | 02-09-2024 | 02-09-2024 | Under
+Surv",lepto_cholera,2205,36th 2023.pdf,8
+2024,36,"KN/UTK/2024/36/2205 | Karnataka | Uttar Kannad | Acute
+Diarrheal
+Disease | 91 | 1 | 02-09-2024 | 02-09-2024 | Under
+Surv",lepto_cholera,2205,36th 2024.pdf,8
+2023,37,"KN/BEL/2023/37/1222 | Karnataka | Ballari | Acute
+Diarrheal
+Disease | 43 | 0 | 16-09-23 | 16-09-23 | Under
+Surveillance ",lepto_cholera,2023,37th 2023.pdf,9
+2024,37,"KN/MYS/2024/37/2276 | Karnataka | Mysuru | Acute
+Diarrheal
+Diseases | 90 | 2 | 11-09-2024 | Under
+Control | Cases were r",lepto_cholera,2276,37th 2024.pdf,9
+2023,38,"KN/DVA/2023/37/1278 | Karnataka | Davangere | Acute
+Diarrheal
+Disease | 25 | 0 | 21-09-23 | 21-09-23 | Under
+Control | C",lepto_cholera,2023,38th 2023.pdf,10
+2023,38,"KN/RCR/2023/37/1279 | Karnataka | Raichur | Dengue | 15 | 0 | 20-09-23 | 21-09-23 | Under
+Surveillance | Cases were repo",dengue_malaria,2023,38th 2023.pdf,10
+2023,39,"KN/BEL/2023/39/1323 | Karnataka | Ballari | Mumps | 12 | 0 | 29-09-23 | 30-09-23 | Under
+Control | Cases reported from G",respiratory,2023,39th 2023.pdf,9
+2023,39,"Bangalore, all 12 samples were found to be | 39th 2023.pdf | 9",other,12,39th 2023.pdf,9
+2023,39,PHI Bangalore for investigation. District RRT | 39th 2023.pdf | 10,other,2023,39th 2023.pdf,10
+2023,39,"KN/DVA/2023/39/1325 | Karnataka | Davangere | Human
+Rabies | 1 | 1 | 24-09-23 | 27-09-23 | Under
+Surveillance | Case rep",other,2023,39th 2023.pdf,10
+2023,39,"KN/GUL/2023/39/1327 | Karnataka | Kalaburagi | Mumps | 10 | 0 | 25-09-23 | Under
+Surveillance | Cases reported from Kawa",other,2023,39th 2023.pdf,11
+2023,39,"serum samples were sent to BMCRI Bangalore, | 39th 2023.pdf | 11",other,2023,39th 2023.pdf,11
+2023,39,"KN/TUM/2023/39/1329 | Karnataka | Tumakuru | Acute
+Diarrheal
+Disease | 46 | 0 | 25-09-23 | 27-09-23 | Under
+Control | Ca",lepto_cholera,2023,39th 2023.pdf,12
+2023,39,"KN/CMN/2023/39/1346 | Karnataka | Chamarajanag
+ar | Leptospirosis | 1 | 1 | 16-09-23 | Under
+Control | Case reported fro",lepto_cholera,2023,39th 2023.pdf,19
+2024,39,"KN/RIC/2024/39/2384 | Karnataka | Raichur | Food
+Poisoning | 14 | 0 | 25-09-2024 | Under
+Control | Cases were reported f",other,2384,39th 2024.pdf,7
+2023,40,"KN/BAU/2023/40/1368 | Karnataka | Bengaluru
+Rural | Fever | 27 | 0 | 04-10-23 | 04-10-23 | Under
+Surveillance | Cases we",other,2023,40th 2023.pdf,7
+2023,40,"Sub-District Hosakote, District Bengaluru. | 40th 2023.pdf | 7",other,2023,40th 2023.pdf,7
+2023,40,"KN/UDU/2023/40/1370 | Karnataka | Udupi | Acute
+Diarrheal
+Disease | 5 | 0 | 06-10-23 | 07-10-23 | Under
+Control | Cases ",lepto_cholera,2023,40th 2023.pdf,8
+2023,40,"KN/KRW/2023/40/1371 | Karnataka | Uttar Kannad | Leptospirosis | 3 | 1 | 03-10-23 | 03-10-23 | Under
+Surveillance | Case",lepto_cholera,2023,40th 2023.pdf,8
+2024,40,"KN/BGR/2024/40/2440 | Karnataka | Bengaluru Rural | Food
+Poisoning | 17 | 0 | 03-10-2024 | Under
+Control | Cases were re",other,2440,40th 2024.pdf,10
+2024,40,"Dodda Ballapur, District: Bengaluru Rural. | 40th 2024.pdf | 10",other,2024,40th 2024.pdf,10
+2024,40,"KN/UDP/2024/40/2442 | Karnataka | Udupi | Dysentery | 35 | 0 | 03-10-2024 | Under
+Control | Total 3 water samples were s",other,3,40th 2024.pdf,11
+2023,41,"KN/BGK/2023/41/1416 | Karnataka | Bagalkot | Mumps | 28 | 0 | 10-10-23 | Under
+Surveillance | Cases were reported from V",other,2023,41st 2023.pdf,6
+2023,41,"KN/TUM/2023/41/1443 | Karnataka | Tumakuru | Dengue | 32 | 0 | 03-10-23 | Under
+Surveillance | Cases were reported from ",dengue_malaria,2023,41st 2023.pdf,15
+2024,41,"KN/CHK/2024/41/2506 | Karnataka | Chikballapur | Chikungunya | 45 | 0 | 26-09-2024 | Under
+Surveillance | Cases were rep",dengue_malaria,2506,41st 2024.pdf,13
+2023,42,"KN/CKM/2023/42/1462 | Karnataka | Chikkamagalu
+ru | Fever | 17 | 0 | 15-10-23 | 17-10-23 | Under
+Surveillance | Cases re",other,2023,42nd 2023.pdf,9
+2023,42,"KN/RCR/2023/42/1464 | Karnataka | Raichur | Dengue | 27 | 0 | 18-10-23 | 19-10-23 | Under
+Surveillance | Cases reported ",dengue_malaria,2023,42nd 2023.pdf,10
+2023,43,"KN/MNY/2023/43/1522 | Karnataka | Mandya | Acute
+Diarrheal
+Disease | 22 | 0 | 25-10-23 | Under
+Control | Cases reported ",lepto_cholera,2023,43rd 2023.pdf,7
+2024,43,"KN/BAL/2024/43/2605 | Karnataka | Ballari | Measles | 11 | 0 | 22-10-2024 | Under
+Surveillance | Cases were reported fro",respiratory,2605,43rd 2024.pdf,6
+2024,43,"Bangalore, out of which 5 were positive for | 43rd 2024.pdf | 6",other,5,43rd 2024.pdf,6
+2024,43,"KN/HAS/2024/43/2607 | Karnataka | Hassan | Acute
+Diarrheal
+Disease | 27 | 0 | 23-10-2024 | 24-10-2024 | Under
+Surveillan",lepto_cholera,2607,43rd 2024.pdf,7
+2024,43,"KN/TMK/2024/43/2608 | Karnataka | Tumakuru | Acute
+Diarrheal
+Disease | 22 | 0 | 23-10-2024 | 23-10-2024 | Under
+Surveill",lepto_cholera,2608,43rd 2024.pdf,7
+2024,43,"KN/VIJ/2024/43/2610 | Karnataka | Vijayanagar | Leptospirosis | 15 | 0 | 19-10-2024 | 24-10-2024 | Under
+Surveillance | ",lepto_cholera,2610,43rd 2024.pdf,8
