@@ -19,10 +19,6 @@ import plotly.express as px
 from datetime import date, timedelta
 from pathlib import Path
 
-# ── Path setup ─────────────────────────────────────────────────────────────
-ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "src"))
-
 # ── Page config (must be first Streamlit call) ─────────────────────────────
 st.set_page_config(
     page_title="Sentin-AI | Public Health Early Warning",
@@ -30,6 +26,21 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+# ── Path setup & Dynamic Reloads ───────────────────────────────────────────
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "src"))
+
+import importlib
+try:
+    import live_weather
+    import gee_pipeline
+    import realtime_pipeline
+    importlib.reload(live_weather)
+    importlib.reload(gee_pipeline)
+    importlib.reload(realtime_pipeline)
+except Exception:
+    pass
 
 # ── Custom CSS ─────────────────────────────────────────────────────────────
 st.markdown("""
@@ -256,10 +267,16 @@ def phri_color(score):
     return "#ff4c4c"
 
 
-# ── Module loader (cached) ─────────────────────────────────────────────────
-@st.cache_resource(show_spinner="Loading Sentin-AI modules...")
+# ── Module loader ──────────────────────────────────────────────────────────
 def load_modules():
     try:
+        import importlib
+        import phri_engine, disease_router, seir_model, gemini_voice
+        importlib.reload(phri_engine)
+        importlib.reload(disease_router)
+        importlib.reload(seir_model)
+        importlib.reload(gemini_voice)
+
         from phri_engine    import PHRIEngine
         from disease_router import DiseaseRouter
         from seir_model     import SEIRModel
@@ -450,19 +467,52 @@ def render_sidebar():
 
     mode = st.sidebar.radio(
         "Mode",
-        ["🔴 Real-time Scoring", "📅 Historical Scoring", "🧪 Stress Test"],
+        ["⚡ Automated Live Pipeline", "🔴 Manual Real-time", "📅 Historical Scoring", "🧪 Stress Test"],
         label_visibility="collapsed",
     )
 
     st.sidebar.markdown("""
-    <div class='section-head' style='margin-top:1.5rem'>Location</div>
+    <div class='section-head' style='margin-top:1.5rem'>Health Officer Location Control</div>
     """, unsafe_allow_html=True)
-    st.sidebar.markdown("📍 **Bengaluru, Karnataka**")
+
+    PRESET_CITIES = {
+        "Bengaluru, KA": {"lat": 12.98, "lon": 77.58, "name": "Bengaluru"},
+        "Mumbai, MH":    {"lat": 19.07, "lon": 72.87, "name": "Mumbai"},
+        "Delhi, NCR":    {"lat": 28.61, "lon": 77.20, "name": "Delhi"},
+        "Chennai, TN":   {"lat": 13.08, "lon": 80.27, "name": "Chennai"},
+        "Hyderabad, TS": {"lat": 17.38, "lon": 78.48, "name": "Hyderabad"},
+        "Kolkata, WB":   {"lat": 22.57, "lon": 88.36, "name": "Kolkata"},
+        "📍 Custom Coordinates": None
+    }
+
+    selected_location = st.sidebar.selectbox("Select Target City", list(PRESET_CITIES.keys()), index=0)
+
+    if selected_location == "📍 Custom Coordinates":
+        col_lat, col_lon = st.sidebar.columns(2)
+        target_lat = col_lat.number_input("Latitude", value=12.98, min_value=-90.0, max_value=90.0, format="%.4f")
+        target_lon = col_lon.number_input("Longitude", value=77.58, min_value=-180.0, max_value=180.0, format="%.4f")
+        location_name = st.sidebar.text_input("Location Name", value="Custom Region")
+        st.sidebar.caption("💡 Use **negative** longitude for Americas/West (e.g. Las Vegas = -115.1765)")
+    else:
+        preset = PRESET_CITIES[selected_location]
+        target_lat = preset["lat"]
+        target_lon = preset["lon"]
+        location_name = preset["name"]
+
+    surveillance_radius = st.sidebar.slider("Surveillance Radius (km)", 1.0, 20.0, 5.0, 0.5)
+
     st.sidebar.markdown(
-        "<span style='font-family:DM Mono;font-size:0.72rem;color:#6b7a99'>"
-        "12.98°N 77.58°E  |  5km radius</span>",
+        f"<span style='font-family:DM Mono;font-size:0.72rem;color:#00e5ff'>"
+        f"📍 {location_name} ({target_lat}°N, {target_lon}°E) | {surveillance_radius}km radius</span>",
         unsafe_allow_html=True
     )
+
+    location_config = {
+        "lat": target_lat,
+        "lon": target_lon,
+        "radius_km": surveillance_radius,
+        "location_name": location_name
+    }
 
     st.sidebar.markdown("""
     <div class='section-head' style='margin-top:1.5rem'>Manual Weather Input</div>
@@ -490,12 +540,12 @@ def render_sidebar():
             "vegetation_anomaly_score": st.sidebar.slider("Veg Anomaly Score",     0.0, 1.0, 0.25, 0.05),
         }
 
-    return mode, weather, yolo
+    return mode, weather, yolo, location_config
 
 
 # ── Main run function ──────────────────────────────────────────────────────
 def run_inference(engine, router, voice, weather, yolo, mode,
-                  hist_date=None):
+                  hist_date=None, location_name="Bengaluru"):
     """Run the full pipeline and return all results."""
     from seir_model import SEIRModel
 
@@ -510,7 +560,7 @@ def run_inference(engine, router, voice, weather, yolo, mode,
                         phri_result.phri_score, days=14)
 
     with st.spinner("Generating health bulletin..."):
-        bulletin = voice.generate(phri_result, disease_route, seir_result)
+        bulletin = voice.generate(phri_result, disease_route, seir_result, location=location_name)
 
     return phri_result, disease_route, seir_result, bulletin
 
@@ -520,7 +570,14 @@ def main():
     engine, router, voice = load_modules()
     df_hist = load_history_df()
 
-    mode, weather, yolo = render_sidebar()
+    mode, weather, yolo, loc_cfg = render_sidebar()
+
+    # ── Clear stale results when location changes ──────────────────────────
+    loc_key = f"{loc_cfg['lat']:.4f},{loc_cfg['lon']:.4f},{loc_cfg['radius_km']}"
+    if st.session_state.get("_last_loc_key") != loc_key:
+        st.session_state["_last_loc_key"] = loc_key
+        for key in ["last_result", "live_meta", "live_weather", "live_yolo", "loc_cfg"]:
+            st.session_state.pop(key, None)
 
     # ── Hero ──────────────────────────────────────────────────────────────
     st.markdown(f"""
@@ -528,7 +585,7 @@ def main():
       <div class='hero-title'>🛰️ Sentin-AI</div>
       <p class='hero-sub'>
         AI-Powered Proactive Disease Outbreak Monitor &nbsp;·&nbsp;
-        Bengaluru, Karnataka &nbsp;·&nbsp;
+        {loc_cfg['location_name']} ({loc_cfg['lat']}°N, {loc_cfg['lon']}°E) &nbsp;·&nbsp;
         {date.today().strftime("%d %B %Y")}
       </p>
     </div>
@@ -605,19 +662,67 @@ def main():
                 "adjust PHRI to see real-time SEIR curve response.")
         return
 
-    # ── Run inference ──────────────────────────────────────────────────────
-    run_btn = st.button("▶ Run Analysis", type="primary", width='content')
+    # ── Automated Live Pipeline Mode ───────────────────────────────────────
+    if mode == "⚡ Automated Live Pipeline":
+        st.markdown("<div class='section-head'>Automated Real-Time Execution</div>", unsafe_allow_html=True)
+        st.markdown(
+            f"Press below to fetch **live weather from OpenWeatherMap API** for **{loc_cfg['location_name']}**, "
+            f"query **Google Earth Engine** for the latest Sentinel-2 scene over **{loc_cfg['location_name']} ({loc_cfg['lat']}°N, {loc_cfg['lon']}°E | {loc_cfg['radius_km']}km radius)**, "
+            "run **YOLOv8** detection, and compute the **PHRI score & AI Advisory** in real time."
+        )
+        live_btn = st.button(f"⚡ Execute Live Pipeline for {loc_cfg['location_name']}", type="primary")
+        if live_btn:
+            try:
+                import importlib
+                import sys
+                # Force-reload pipeline modules to pick up latest phri_engine fixes
+                for mod_name in ["phri_engine", "live_weather", "gee_pipeline",
+                                 "yolo_inference", "realtime_pipeline"]:
+                    if mod_name in sys.modules:
+                        importlib.reload(sys.modules[mod_name])
+                from realtime_pipeline import run_live_pipeline
 
-    if run_btn:
-        try:
-            phri_r, disease_r, seir_r, bulletin = run_inference(
-                engine, router, voice, weather, yolo, mode, hist_date
-            )
-            st.session_state["last_result"] = (phri_r, disease_r, seir_r, bulletin)
-        except Exception as e:
-            st.error(f"Inference error: {e}")
-            st.info("Tip: Make sure Step 1 (nasa_power_parser.py) has been run.")
-            return
+                _lat  = loc_cfg["lat"]
+                _lon  = loc_cfg["lon"]
+                _rad  = loc_cfg["radius_km"]
+                _name = loc_cfg["location_name"]
+
+                st.info(f"📡 Running pipeline for **{_name}** — Lat:{_lat:.4f}, Lon:{_lon:.4f}")
+
+                with st.spinner(f"Fetching live weather & latest satellite scene for {_name}..."):
+                    res = run_live_pipeline(
+                        lat=_lat,
+                        lon=_lon,
+                        radius_km=_rad,
+                        location_name=_name
+                    )
+                    st.session_state["last_result"] = (
+                        res["phri_result"], res["disease_route"], res["seir_result"], res["bulletin"]
+                    )
+                    st.session_state["live_meta"] = res["latest_meta"]
+                    st.session_state["live_weather"] = res["weather"]
+                    st.session_state["live_yolo"] = res["yolo"]
+                    st.session_state["loc_cfg"] = loc_cfg
+                st.success(f"✅ Live pipeline completed for {_name}! Latest satellite date: {res['latest_meta']['date']}")
+            except Exception as e:
+                import traceback
+                st.error(f"Real-time pipeline error: {e}")
+                st.code(traceback.format_exc())
+                return
+
+    # ── Standard Run inference button ──────────────────────────────────────
+    else:
+        run_btn = st.button("▶ Run Analysis", type="primary", width='content')
+        if run_btn:
+            try:
+                phri_r, disease_r, seir_r, bulletin = run_inference(
+                    engine, router, voice, weather, yolo, mode, hist_date, location_name=loc_cfg["location_name"]
+                )
+                st.session_state["last_result"] = (phri_r, disease_r, seir_r, bulletin)
+            except Exception as e:
+                st.error(f"Inference error: {e}")
+                st.info("Tip: Make sure Step 1 (nasa_power_parser.py) has been run.")
+                return
 
     if "last_result" not in st.session_state:
         st.markdown("""
@@ -629,7 +734,7 @@ def main():
             Sentin-AI Ready
           </div>
           <div style='font-family:DM Mono;font-size:0.8rem;color:#6b7a99'>
-            Adjust the weather sliders in the sidebar, then click
+            Select <strong style='color:#00e5ff'>⚡ Automated Live Pipeline</strong> above or click
             <strong style='color:#e8edf5'>▶ Run Analysis</strong> to generate a health bulletin.
           </div>
         </div>
@@ -671,6 +776,52 @@ def main():
               <div class='metric-sub'>{sub}</div>
             </div>""", unsafe_allow_html=True)
 
+    # ── Row 1.5: Satellite Perception Layer (Sentinel-2 5km ROI) ───────────
+    st.markdown("<div class='section-head' style='margin-top:1.5rem'>Satellite Perception Layer (Sentinel-2 5km ROI)</div>", unsafe_allow_html=True)
+    col_sat1, col_sat2, col_sat3 = st.columns([1, 1, 1])
+
+    live_meta = st.session_state.get("live_meta", None)
+    if not live_meta and (ROOT / "data" / "raw_imagery" / "sentinel2_metadata.csv").exists():
+        try:
+            mdf = pd.read_csv(ROOT / "data" / "raw_imagery" / "sentinel2_metadata.csv")
+            if not mdf.empty:
+                live_meta = mdf.iloc[-1].to_dict()
+        except Exception:
+            pass
+
+    if live_meta:
+        rgb_file = live_meta.get("rgb_path")
+        ndwi_file = live_meta.get("ndwi_png_path")
+        scene_date = live_meta.get("date", "Latest")
+
+        with col_sat1:
+            if rgb_file and Path(rgb_file).exists():
+                st.image(rgb_file, caption=f"Sentinel-2 True Color RGB ({scene_date})", use_container_width=True)
+            else:
+                st.info("RGB image pending fetch.")
+
+        with col_sat2:
+            if ndwi_file and Path(ndwi_file).exists():
+                st.image(ndwi_file, caption=f"NDWI Water Index Heatmap ({scene_date})", use_container_width=True)
+            else:
+                st.info("NDWI heatmap pending fetch.")
+
+        with col_sat3:
+            st.markdown(f"""
+            <div class='metric-card' style='height:100%'>
+              <div class='metric-title'>Satellite Metadata</div>
+              <div style='font-family:DM Mono;font-size:0.85rem;color:#00e5ff;margin-top:0.5rem'>
+                📍 Location: {loc_cfg['location_name']} ({loc_cfg['lat']}°N, {loc_cfg['lon']}°E)<br>
+                📏 Surveillance Radius: {loc_cfg['radius_km']} km<br>
+                📅 Scene Date: {scene_date}<br>
+                ☁️ Cloud Cover: {live_meta.get('cloud_pct', '—')}%<br>
+                💧 Mean NDWI: {live_meta.get('ndwi_mean', '—')}<br>
+                🌿 Mean NDVI: {live_meta.get('ndvi_mean', '—')}
+              </div>
+            </div>""", unsafe_allow_html=True)
+    else:
+        st.info("ℹ️ No satellite imagery loaded yet. Click ⚡ Execute Live Pipeline above to fetch live Sentinel-2 scenes.")
+
     # ── Row 2: SEIR chart + weather radar ──────────────────────────────────
     st.markdown("<div class='section-head' style='margin-top:1.5rem'>Projection & Environment</div>",
                 unsafe_allow_html=True)
@@ -683,7 +834,8 @@ def main():
         )
 
     with col_radar:
-        st.plotly_chart(weather_radar(weather), width='stretch')
+        active_weather = st.session_state.get("live_weather", weather)
+        st.plotly_chart(weather_radar(active_weather), width='stretch')
 
     # ── Row 3: Historical timeline ─────────────────────────────────────────
     if df_hist is not None:

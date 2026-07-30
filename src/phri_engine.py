@@ -33,10 +33,12 @@ from pathlib import Path
 from typing import Optional
 
 # ── Paths ──────────────────────────────────────────────────────────────────
-ROOT         = Path(__file__).resolve().parent.parent
-WEATHER_DIR  = ROOT / "data" / "weather_cache"
-MODEL_PATH   = ROOT / "models" / "lstm_phri.h5"
-FEATURES_CSV = WEATHER_DIR / "weather_features.csv"
+ROOT              = Path(__file__).resolve().parent.parent
+WEATHER_DIR       = ROOT / "data" / "weather_cache"
+IMAGERY_DIR       = ROOT / "data" / "raw_imagery"
+MODEL_PATH        = ROOT / "models" / "lstm_phri.h5"
+FEATURES_CSV      = WEATHER_DIR / "weather_features.csv"
+YOLO_FEATURES_CSV = IMAGERY_DIR / "yolo_features.csv"
 
 WINDOW_SIZE  = 30   # days — must match lstm_model.py
 
@@ -131,6 +133,7 @@ class PHRIEngine:
         self._model      = None
         self._model_path = model_path
         self._df_hist    = None   # lazy-loaded historical features
+        self._df_yolo    = None   # lazy-loaded YOLO features from yolo_inference.py
 
     # ── Model loader (lazy) ────────────────────────────────────────────────
     def _load_model(self):
@@ -156,7 +159,47 @@ class PHRIEngine:
             )
         self._df_hist = pd.read_csv(FEATURES_CSV, index_col=0, parse_dates=True)
         print(f"[PHRIEngine] Historical features loaded: "
-              f"{self._df_hist.index[0].date()} → {self._df_hist.index[-1].date()}")
+              f"{self._df_hist.index[0].date()} to {self._df_hist.index[-1].date()}")
+
+    # ── YOLO features loader (lazy) ────────────────────────────────────────
+    def _load_yolo_features(self):
+        """
+        Load yolo_features.csv produced by yolo_inference.py.
+        Returns a DataFrame indexed by date string, or None if not available.
+        """
+        if self._df_yolo is not None:
+            return self._df_yolo
+        if not YOLO_FEATURES_CSV.exists():
+            print("[PHRIEngine] yolo_features.csv not found — using placeholder zeros.")
+            self._df_yolo = pd.DataFrame()   # empty sentinel
+            return self._df_yolo
+        df = pd.read_csv(YOLO_FEATURES_CSV, parse_dates=["date"])
+        df["date"] = pd.to_datetime(df["date"]).dt.date
+        df = df.set_index("date")
+        self._df_yolo = df
+        print(f"[PHRIEngine] YOLO features loaded: {len(df)} image dates available")
+        return self._df_yolo
+
+    def _get_yolo_for_date(self, target: date) -> Optional[dict]:
+        """
+        Find the nearest YOLO feature row within 15 days of target date.
+        Returns a dict or None if no match found.
+        """
+        yolo_df = self._load_yolo_features()
+        if yolo_df is None or yolo_df.empty:
+            return None
+
+        yolo_cols = ["stagnant_water_count", "stagnant_water_area_px",
+                     "garbage_count", "vegetation_anomaly_score"]
+
+        # Find closest date within 15-day window
+        available_dates = yolo_df.index.tolist()
+        closest = min(available_dates, key=lambda d: abs((d - target).days), default=None)
+        if closest is None or abs((closest - target).days) > 15:
+            return None
+
+        row = yolo_df.loc[closest]
+        return {col: float(row.get(col, 0.0)) for col in yolo_cols}
 
     # ── Inference (shared) ─────────────────────────────────────────────────
     def _infer(self, window_raw: np.ndarray) -> float:
@@ -200,11 +243,23 @@ class PHRIEngine:
 
         window_raw = window_df.values[-WINDOW_SIZE:].astype(np.float32)
 
-        # Check if visual features are real or placeholder
-        visual_complete   = bool(window_raw[:, 6:].sum() > 0)
-        weather_complete  = True   # from CSV, assumed complete after Step 1
+        # ── Inject real YOLO features (Step 11 wiring) ────────────────────
+        yolo_dict = self._get_yolo_for_date(target_date)
+        if yolo_dict is not None:
+            # Overwrite the last row's YOLO columns (indices 6-9) with real data
+            window_raw[-1, 6] = float(yolo_dict.get("stagnant_water_count", 0))
+            window_raw[-1, 7] = float(yolo_dict.get("stagnant_water_area_px", 0))
+            window_raw[-1, 8] = float(yolo_dict.get("garbage_count", 0))
+            window_raw[-1, 9] = float(yolo_dict.get("vegetation_anomaly_score", 0))
+            visual_complete = True
+            print(f"[PHRIEngine] YOLO features injected for {target_date} "
+                  f"(nearest image: {min(self._df_yolo.index, key=lambda d: abs((d - target_date).days))})")
+        else:
+            visual_complete = bool(window_raw[:, 6:].sum() > 0)
 
-        # Confidence penalty if YOLO not yet wired
+        weather_complete = True   # from CSV, assumed complete after Step 1
+
+        # Confidence: full if YOLO real, partial if placeholder
         confidence = 1.0 if visual_complete else 0.70
 
         score = self._infer(window_raw)
@@ -249,28 +304,44 @@ class PHRIEngine:
         """
         self._load_history()
 
-        # Build today's feature row
-        today_row = np.zeros(10, dtype=np.float32)
+        # Build 30-day feature window centered around live weather snapshot
+        window_raw = np.zeros((30, 10), dtype=np.float32)
+
         weather_cols = LSTM_FEATURES[:6]
+        np.random.seed(42)  # consistent variation
+
         for j, col in enumerate(weather_cols):
-            today_row[j] = float(weather.get(col, 0.0))
+            val = float(weather.get(col, 0.0))
+            if col == "precipitation_imerg_mm":
+                if val <= 0.01:
+                    window_raw[:, j] = 0.0
+                else:
+                    noise = np.random.exponential(scale=val, size=30)
+                    noise[-1] = val
+                    window_raw[:, j] = np.clip(noise, 0.0, 100.0)
+            elif col == "relative_humidity_pct":
+                noise = val + np.random.normal(loc=0.0, scale=2.0, size=30)
+                noise[-1] = val
+                window_raw[:, j] = np.clip(noise, 10.0, 100.0)
+            elif col == "temperature_2m_c":
+                noise = val + np.random.normal(loc=0.0, scale=1.0, size=30)
+                noise[-1] = val
+                window_raw[:, j] = np.clip(noise, 5.0, 50.0)
+            else:
+                noise = val + np.random.normal(loc=0.0, scale=max(abs(val) * 0.05, 0.1), size=30)
+                noise[-1] = val
+                window_raw[:, j] = noise
 
-        visual_complete = yolo is not None and any(
-            v > 0 for v in yolo.values()
-        ) if yolo else False
-
+        # Apply YOLO visual features & satellite spectral indices
+        visual_complete = yolo is not None and any(v > 0 for v in yolo.values()) if yolo else False
         if yolo:
-            today_row[6]  = float(yolo.get("stagnant_water_count", 0))
-            today_row[7]  = float(yolo.get("stagnant_water_area_px", 0))
-            today_row[8]  = float(yolo.get("garbage_count", 0))
-            today_row[9]  = float(yolo.get("vegetation_anomaly_score", 0))
-
-        # Pull last 29 days from history
-        df = self._df_hist
-        past_29 = df.iloc[-29:][LSTM_FEATURES].values.astype(np.float32)
-
-        # Stack: (29, 10) history + (1, 10) today = (30, 10)
-        window_raw = np.vstack([past_29, today_row[np.newaxis, :]])
+            window_raw[-1, 6] = float(yolo.get("stagnant_water_count", 0))
+            window_raw[-1, 7] = float(yolo.get("stagnant_water_area_px", 0))
+            window_raw[-1, 8] = float(yolo.get("garbage_count", 0))
+            window_raw[-1, 9] = float(yolo.get("vegetation_anomaly_score", 0))
+            window_raw[-5:, 6] = float(yolo.get("stagnant_water_count", 0)) * 0.8
+            window_raw[-5:, 8] = float(yolo.get("garbage_count", 0)) * 0.8
+            window_raw[-5:, 9] = float(yolo.get("vegetation_anomaly_score", 0)) * 0.9
 
         weather_keys   = set(weather.keys())
         required_keys  = set(weather_cols)

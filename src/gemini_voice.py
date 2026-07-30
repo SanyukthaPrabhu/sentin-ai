@@ -1,28 +1,27 @@
 """
-gemini_voice.py
-===============
+gemini_voice.py  (now powered by Groq LLM)
+==========================================
 Step 8 of the Sentin-AI build order.  Phase 3 — Communication.
 
 Responsibilities:
   - Accept PHRIResult + DiseaseRoute + SEIRResult
-  - Build a structured prompt for Gemini API
-  - Call gemini-pro and parse the response
+  - Build a structured prompt for Groq LLM API
+  - Call llama-3.3-70b-versatile via Groq and parse the JSON response
   - Return a BulletinResult dataclass with:
       • health_bulletin   — 2-3 paragraph public health advisory
       • headline          — one-line newspaper headline
       • action_items      — bulleted list of public actions
       • officer_note      — technical note for health officers
 
-Imported by: dashboard/app.py
+Imported by: dashboard/app.py, realtime_pipeline.py
 
 Usage (as module):
   from gemini_voice import GeminiVoice
-  voice   = GeminiVoice()
+  voice    = GeminiVoice()
   bulletin = voice.generate(phri_result, disease_route, seir_result)
   print(bulletin.headline)
-  print(bulletin.health_bulletin)
 
-Usage (CLI — demo with mock data):
+Usage (CLI):
   python src/gemini_voice.py
   python src/gemini_voice.py --phri 0.82 --disease dengue_malaria
 """
@@ -42,10 +41,10 @@ load_dotenv()
 # ── Paths ──────────────────────────────────────────────────────────────────
 ROOT = Path(__file__).resolve().parent.parent
 
-# ── Gemini config ──────────────────────────────────────────────────────────
-GEMINI_MODEL   = "gemini-2.0-flash"
-MAX_TOKENS     = 1024
-TEMPERATURE    = 0.4    # low — we want factual, consistent health bulletins
+# ── Groq config ────────────────────────────────────────────────────────────
+GROQ_MODEL   = "llama-3.3-70b-versatile"
+MAX_TOKENS   = 1024
+TEMPERATURE  = 0.4    # low — factual, consistent health bulletins
 
 
 # ── Result dataclass ───────────────────────────────────────────────────────
@@ -60,15 +59,17 @@ class BulletinResult:
     disease_label  : str
     generated_date : date = field(default_factory=date.today)
     raw_response   : str  = field(default="", repr=False)
-    fallback_used  : bool = False   # True if Gemini failed, used template
+    fallback_used  : bool = False   # True if Groq failed, used template
 
     def __str__(self):
         actions = "\n".join(f"  - {a}" for a in self.action_items)
+        src = "Groq LLM" if not self.fallback_used else "Template"
         return (
             f"News: {self.headline}\n\n"
             f"{self.health_bulletin}\n\n"
             f"Actions:\n{actions}\n\n"
-            f"[Officer] {self.officer_note}"
+            f"[Officer] {self.officer_note}\n"
+            f"[Source] {src}"
         )
 
     def to_dict(self) -> dict:
@@ -93,10 +94,9 @@ def _build_prompt(phri_score    : float,
                   seir_summary  : dict,
                   location      : str = "Bengaluru, Karnataka") -> str:
     """
-    Build a structured Gemini prompt from pipeline outputs.
-    Instructs Gemini to respond in JSON so we can parse reliably.
+    Build a structured prompt from pipeline outputs.
+    Instructs the LLM to respond in JSON so we can parse reliably.
     """
-
     seir_curve = seir_summary.get("new_cases_curve", [])
     curve_str  = ", ".join(str(int(v)) for v in seir_curve[:14])
 
@@ -121,7 +121,6 @@ def _build_prompt(phri_score    : float,
     Total projected : {seir_summary.get("total_projected", 0)} cases over 14 days
     Attack rate     : {seir_summary.get("attack_rate_pct", 0):.3f}% of surveillance population
     Daily new cases : [{curve_str}]
-    Effective R\u2080    : {seir_summary.get("beta_effective", 0) / (1/5):.2f} (estimated)
 
     === OUTPUT FORMAT ===
     Respond ONLY with a valid JSON object — no preamble, no markdown, no backticks.
@@ -137,40 +136,48 @@ def _build_prompt(phri_score    : float,
         "Action item 4",
         "Action item 5"
       ],
-      "officer_note": "1-2 sentences of technical context for the district health officer. May include R0, PHRI threshold, model confidence."
+      "officer_note": "1-2 sentences of technical context for the district health officer. Include PHRI threshold, model confidence, and recommended alert level."
     }}
     """).strip()
 
     return prompt
 
 
-# ── Gemini caller (à google.genai SDK) ──────────────────────────────────────
-def _call_gemini(prompt: str, api_key: str) -> str:
-    """Call Gemini API via the new google.genai SDK and return raw text."""
-    from google import genai
-    from google.genai import types
-
-    client = genai.Client(api_key=api_key)
-    response = client.models.generate_content(
-        model=GEMINI_MODEL,
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            temperature=TEMPERATURE,
-            max_output_tokens=MAX_TOKENS,
-        ),
+# ── Groq caller ────────────────────────────────────────────────────────────
+def _call_groq(prompt: str, api_key: str) -> str:
+    """Call Groq API and return raw text response."""
+    from groq import Groq
+    client = Groq(api_key=api_key)
+    response = client.chat.completions.create(
+        model=GROQ_MODEL,
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are a public health AI assistant. "
+                    "You always respond with valid JSON only — no markdown, no preamble."
+                )
+            },
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        temperature=TEMPERATURE,
+        max_tokens=MAX_TOKENS,
     )
-    return response.text
+    return response.choices[0].message.content
 
 
 # ── Response parser ────────────────────────────────────────────────────────
 def _parse_response(raw: str) -> dict:
     """
-    Parse Gemini JSON response. Strip markdown fences if present.
+    Parse LLM JSON response. Strip markdown fences if present.
     Falls back to empty dict on failure.
     """
     text = raw.strip()
 
-    # Strip ```json ... ``` fences if Gemini added them despite instructions
+    # Strip ```json ... ``` fences
     if text.startswith("```"):
         lines = text.split("\n")
         text  = "\n".join(
@@ -192,7 +199,7 @@ def _parse_response(raw: str) -> dict:
     return {}
 
 
-# ── Fallback template (no API key or Gemini failure) ──────────────────────
+# ── Fallback template (no API key or Groq failure) ─────────────────────────
 def _fallback_bulletin(phri_score   : float,
                        risk_level   : str,
                        disease_label: str,
@@ -200,7 +207,7 @@ def _fallback_bulletin(phri_score   : float,
                        seir_summary : dict,
                        location     : str) -> dict:
     """
-    Template-based bulletin when Gemini is unavailable.
+    Template-based bulletin when Groq is unavailable.
     Ensures the dashboard always has something to display.
     """
     peak   = seir_summary.get("peak_cases", 0)
@@ -212,8 +219,8 @@ def _fallback_bulletin(phri_score   : float,
 
     return {
         "headline": (
-            f"{risk_level} {disease_label} Risk Detected in {location} — "
-            f"Health Advisory Issued"
+            f"{risk_level} {disease_label} Alert in {location} — "
+            f"Health Advisory Issued by Sentin-AI"
         ),
         "health_bulletin": (
             f"The Sentin-AI public health monitoring system has detected a "
@@ -229,26 +236,33 @@ def _fallback_bulletin(phri_score   : float,
             f"the situation. Updated advisories will be issued daily."
         ),
         "action_items": [
-            f"Eliminate stagnant water sources within and around your home",
-            f"Seek medical attention immediately if you develop {warn.lower()[:50]}",
-            f"Boil drinking water and maintain hand hygiene during this period",
-            f"Avoid areas with visible garbage accumulation or waterlogging",
-            f"Report unusual clusters of illness to your local BBMP health ward",
+            "Eliminate all stagnant water sources within and around your home",
+            f"Seek medical attention immediately if you develop {warn.lower()[:60]}",
+            "Boil drinking water and maintain strict hand hygiene during this period",
+            "Avoid areas with visible garbage accumulation or waterlogging",
+            "Report unusual illness clusters to your local BBMP/Municipal health ward",
         ],
         "officer_note": (
-            f"PHRI={phri_score:.3f} (threshold 0.70). SEIR beta_eff={seir_summary.get('beta_effective',0):.3f}. "
-            f"Projected {total} cases over 14 days (attack rate "
-            f"{seir_summary.get('attack_rate_pct',0):.3f}%). "
-            f"Gemini bulletin unavailable — template used."
+            f"PHRI={phri_score:.3f} (alert threshold: 0.70). "
+            f"SEIR projects {total} cases over 14 days "
+            f"(attack rate {seir_summary.get('attack_rate_pct', 0):.3f}%). "
+            f"LLM bulletin unavailable — template fallback active. "
+            f"Add GROQ_API_KEY=gsk_... to your .env file to enable AI bulletins."
         ),
     }
 
 
-# ── Main GeminiVoice class ─────────────────────────────────────────────────
+# ── Main GeminiVoice class (Groq-powered, same interface) ──────────────────
 class GeminiVoice:
+    """
+    Drop-in replacement for the old Gemini-based voice module.
+    Uses Groq LLM (llama-3.3-70b-versatile) under the hood.
+    Same generate() interface — no changes needed in dashboard/app.py.
+    """
 
     def __init__(self, api_key: Optional[str] = None):
-        self.api_key = api_key or os.getenv("GEMINI_API_KEY", "")
+        # Try GROQ_API_KEY first
+        self.api_key = api_key or os.getenv("GROQ_API_KEY", "")
 
     def generate(self,
                  phri_result   ,   # PHRIResult
@@ -256,8 +270,8 @@ class GeminiVoice:
                  seir_result   ,   # SEIRResult
                  location      : str = "Bengaluru, Karnataka") -> BulletinResult:
         """
-        Full pipeline: build prompt → call Gemini → parse → return BulletinResult.
-        Falls back to template if Gemini fails or key is missing.
+        Full pipeline: build prompt → call Groq → parse → return BulletinResult.
+        Falls back to template if Groq fails or key is missing.
         """
         phri_score    = phri_result.phri_score
         risk_level    = phri_result.risk_level
@@ -271,19 +285,20 @@ class GeminiVoice:
         parsed   = {}
         fallback = False
 
-        if not self.api_key or self.api_key == "your_gemini_api_key_here":
-            print("[GeminiVoice] ! No API key — using template bulletin")
+        if not self.api_key:
+            print("[LLMVoice] ! No GROQ_API_KEY found — using template bulletin")
+            print("[LLMVoice]   Add GROQ_API_KEY=gsk_... to your .env file")
             fallback = True
         else:
             try:
-                print("[GeminiVoice] Calling Gemini API ...")
-                raw    = _call_gemini(prompt, self.api_key)
+                print(f"[LLMVoice] Calling Groq API ({GROQ_MODEL})...")
+                raw    = _call_groq(prompt, self.api_key)
                 parsed = _parse_response(raw)
                 if not parsed.get("headline"):
-                    raise ValueError("Empty or malformed Gemini response")
-                print("[GeminiVoice] OK: Gemini response parsed successfully")
+                    raise ValueError("Empty or malformed Groq response")
+                print("[LLMVoice] OK: Groq response parsed successfully")
             except Exception as e:
-                print(f"[GeminiVoice] ! Gemini call failed ({e}) -- using template")
+                print(f"[LLMVoice] ! Groq call failed ({e}) -- using template")
                 fallback = True
 
         if fallback or not parsed:
@@ -306,14 +321,12 @@ class GeminiVoice:
 
 # ── CLI / Demo ─────────────────────────────────────────────────────────────
 def main():
-    parser = argparse.ArgumentParser(description="Sentin-AI Gemini Voice Demo")
+    parser = argparse.ArgumentParser(description="Sentin-AI LLM Voice Demo (Groq)")
     parser.add_argument("--phri",    type=float, default=0.73, help="PHRI score 0.0-1.0")
     parser.add_argument("--disease", type=str,   default="dengue_malaria", help="Disease bucket")
     parser.add_argument("--loc",     type=str,   default="Bengaluru, Karnataka", help="Location")
     args = parser.parse_args()
 
-    # 1. Provide mock pipeline results
-    # We use simple objects that have the attributes generate() expects
     class MockResult:
         def __init__(self, **kwargs):
             self.__dict__.update(kwargs)
@@ -322,42 +335,39 @@ def main():
 
     phri_res = MockResult(
         phri_score = args.phri,
-        risk_level = "HIGH" if args.phri > 0.6 else "MEDIUM"
+        risk_level = "CRITICAL" if args.phri > 0.75 else "HIGH" if args.phri > 0.6 else "MEDIUM"
     )
-
     disease_res = MockResult(
         primary_bucket = args.disease,
         meta = {
             "label"          : args.disease.replace("_", " ").title(),
-            "vector"         : "Aedes mosquitoes",
-            "warning_signs"  : "Fever, joint pain",
-            "prevention"     : "Eliminate stagnant water",
-            "incubation_days": "7 days"
+            "vector"         : "Aedes mosquitoes (dengue) / Anopheles (malaria)",
+            "warning_signs"  : "High fever, severe headache, joint/muscle pain, rash",
+            "prevention"     : "Eliminate stagnant water, use mosquito nets and repellents.",
+            "incubation_days": "4–10 days"
         }
     )
-
     seir_res = MockResult(
         summary = {
-            "peak_cases"      : 120,
-            "peak_day"        : 8,
-            "total_projected" : 850,
-            "attack_rate_pct" : 0.31,
-            "beta_effective"  : 0.65,
-            "new_cases_curve" : [10, 15, 25, 45, 80, 110, 120, 115, 100, 80, 60, 40, 30, 20]
+            "peak_cases"      : 24,
+            "peak_day"        : 9,
+            "total_projected" : 142,
+            "attack_rate_pct" : 0.052,
+            "beta_effective"  : 0.61,
+            "new_cases_curve" : [2, 4, 7, 11, 17, 22, 24, 23, 20, 16, 11, 7, 4, 2]
         }
     )
 
-    # 2. Generate bulletin
-    voice = GeminiVoice()
+    voice    = GeminiVoice()
     bulletin = voice.generate(phri_res, disease_res, seir_res, location=args.loc)
 
-    # 3. Print result
-    print("\n" + "="*60)
-    print(" SENTIN-AI HEALTH BULLETIN GENERATION")
-    print("="*60)
+    print("\n" + "="*65)
+    print("  SENTIN-AI HEALTH BULLETIN  (Groq LLM)")
+    print("="*65)
     print(bulletin)
-    print("="*60 + "\n")
+    print("="*65 + "\n")
 
 
 if __name__ == "__main__":
-    main()
+    main()
+
