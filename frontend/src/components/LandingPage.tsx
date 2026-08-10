@@ -5,7 +5,7 @@ const QUICK_CITIES: (LocationConfig & { name: string; desc: string; icon: string
   { name: 'Bengaluru', lat: 12.98, lon: 77.58, radius_km: 5, location_name: 'Bengaluru, Karnataka', desc: 'Suburban lake beds & stagnant water tracking.', icon: '🏢' },
   { name: 'Mumbai', lat: 19.07, lon: 72.87, radius_km: 5, location_name: 'Mumbai, Maharashtra', desc: 'Monsoon precipitation & urban garbage pile risk.', icon: '🌊' },
   { name: 'Chennai', lat: 13.08, lon: 80.27, radius_km: 5, location_name: 'Chennai, Tamil Nadu', desc: 'Coastal vegetation dynamics & high humidity risk.', icon: '🌴' },
-  { name: 'Las Vegas', lat: 36.17, lon: -115.14, radius_km: 5, location_name: 'Las Vegas, Nevada', desc: 'Arid climate control backtest (dry environment proxy).', icon: '🌵' },
+  { name: 'Kolkata', lat: 22.57, lon: 88.36, radius_km: 5, location_name: 'Kolkata, West Bengal', desc: 'River delta flooding & dense urban disease vectors.', icon: '🌿' },
 ];
 
 const PIPELINE_NODES = [

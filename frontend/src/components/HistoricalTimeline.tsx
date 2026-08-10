@@ -65,19 +65,19 @@ export default function HistoricalTimeline({ data, isProxy = true }: Props) {
               <stop offset="100%" stopColor="transparent" />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-          <XAxis dataKey="date" tick={{ fill: '#6b7a99', fontSize: 9, fontFamily: 'DM Mono' }}
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border-glow)" />
+          <XAxis dataKey="date" tick={{ fill: 'var(--text-muted)', fontSize: 9, fontFamily: 'DM Mono' }}
             tickLine={false} axisLine={false} interval={Math.ceil(sampled.length / 8)} />
-          <YAxis domain={[0, 1]} tick={{ fill: '#6b7a99', fontSize: 9, fontFamily: 'DM Mono' }}
+          <YAxis domain={[0, 1]} tick={{ fill: 'var(--text-muted)', fontSize: 9, fontFamily: 'DM Mono' }}
             tickLine={false} axisLine={false} tickFormatter={v => v.toFixed(1)} />
           <Tooltip content={<CustomTooltip />} />
           {/* Alert threshold band */}
           <ReferenceLine y={0.70} stroke="rgba(239,68,68,0.3)" strokeDasharray="5 3"
             label={{ value: 'Alert 0.70', fill: 'var(--red)', fontSize: 9, fontFamily: 'DM Mono', position: 'right' }} />
           <Line type="monotone" dataKey="phri" stroke="var(--cyan)" strokeWidth={1.5}
-            dot={false} activeDot={{ r: 4, fill: 'var(--cyan)', stroke: '#0f131f', strokeWidth: 2 }}
+            dot={false} activeDot={{ r: 4, fill: 'var(--cyan)', stroke: 'var(--bg-card)', strokeWidth: 2 }}
             isAnimationActive animationDuration={1500} animationEasing="ease-out" />
-          <Brush dataKey="date" height={20} stroke="var(--border-glow)" fill="#090c14"
+          <Brush dataKey="date" height={20} stroke="var(--border-glow)" fill="var(--bg-void)"
             travellerWidth={6} />
         </LineChart>
       </ResponsiveContainer>

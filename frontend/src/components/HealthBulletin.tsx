@@ -65,11 +65,11 @@ export default function HealthBulletin({ bulletin }: Props) {
       </div>
 
       <div className="officer-note">
-        🔬 <strong style={{ color: '#e8edf5' }}>Officer Note:</strong>{' '}
+        🔬 <strong style={{ color: 'var(--text-primary)' }}>Officer Note:</strong>{' '}
         {bulletin.officer_note}
       </div>
 
-      <div style={{ fontFamily: 'DM Mono', fontSize: '0.65rem', color: '#6b7a99',
+      <div style={{ fontFamily: 'DM Mono', fontSize: '0.65rem', color: 'var(--text-muted)',
         marginTop: '0.75rem', textAlign: 'right' }}>
         Generated: {bulletin.generated_date}
       </div>

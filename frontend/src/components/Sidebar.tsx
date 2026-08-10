@@ -9,7 +9,6 @@ const CITIES: LocationConfig[] = [
   { lat: 13.08, lon: 80.27, radius_km: 5, location_name: 'Chennai, Tamil Nadu' },
   { lat: 17.38, lon: 78.48, radius_km: 5, location_name: 'Hyderabad, Telangana' },
   { lat: 22.57, lon: 88.36, radius_km: 5, location_name: 'Kolkata, West Bengal' },
-  { lat: 36.17, lon: -115.14, radius_km: 5, location_name: 'Las Vegas, Nevada' },
   { lat: 34.15, lon:  77.57, radius_km: 5, location_name: 'Leh, Ladakh' },
 ];
 

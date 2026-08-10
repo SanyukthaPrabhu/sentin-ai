@@ -11,19 +11,19 @@ interface Props {
 }
 
 function phriColor(s: number) {
-  if (s < 0.40) return '#00e676';
-  if (s < 0.60) return '#ffb300';
-  if (s < 0.75) return '#ff6400';
-  return '#ff4c4c';
+  if (s < 0.40) return '#10b981';
+  if (s < 0.60) return '#f59e0b';
+  if (s < 0.75) return '#f97316';
+  return '#ef4444';
 }
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background: 'rgba(17,24,39,0.95)', border: '1px solid #1e2a3d',
+    <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-glow)',
       borderRadius: 8, padding: '0.5rem 0.75rem', fontFamily: 'DM Mono', fontSize: '0.78rem' }}>
-      <div style={{ color: '#6b7a99' }}>Day {label}</div>
-      <div style={{ color: '#e8edf5', marginTop: 2 }}>{Math.round(payload[0].value)} new cases</div>
+      <div style={{ color: 'var(--text-muted)' }}>Day {label}</div>
+      <div style={{ color: 'var(--text-primary)', marginTop: 2 }}>{Math.round(payload[0].value)} new cases</div>
     </div>
   );
 };
@@ -45,13 +45,13 @@ export default function SEIRChart({ newCasesCurve, peakCases, peakDay, totalProj
           <div className="section-label" style={{ borderBottom: 'none', marginBottom: 2 }}>
             14-Day Case Projection
           </div>
-          <div style={{ fontFamily: 'Syne', fontSize: '0.95rem', fontWeight: 700, color: '#e8edf5' }}>
+          <div style={{ fontFamily: 'DM Sans', fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>
             {diseaseLabel}
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontFamily: 'DM Mono', fontSize: '0.7rem', color: '#6b7a99' }}>Total Projected</div>
-          <div style={{ fontFamily: 'Syne', fontSize: '1.4rem', fontWeight: 800, color }}>{totalProjected.toLocaleString()}</div>
+          <div style={{ fontFamily: 'DM Mono', fontSize: '0.7rem', color: 'var(--text-muted)' }}>Total Projected</div>
+          <div style={{ fontFamily: 'DM Sans', fontSize: '1.4rem', fontWeight: 800, color }}>{totalProjected.toLocaleString()}</div>
         </div>
       </div>
 
@@ -63,17 +63,17 @@ export default function SEIRChart({ newCasesCurve, peakCases, peakDay, totalProj
               <stop offset="95%" stopColor={color} stopOpacity={0.02} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-          <XAxis dataKey="day" tick={{ fill: '#6b7a99', fontSize: 10, fontFamily: 'DM Mono' }}
-            tickLine={false} axisLine={false} label={{ value: 'Day', fill: '#6b7a99', fontSize: 10, position: 'insideBottom', offset: -2 }} />
-          <YAxis tick={{ fill: '#6b7a99', fontSize: 10, fontFamily: 'DM Mono' }}
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border-glow)" />
+          <XAxis dataKey="day" tick={{ fill: 'var(--text-muted)', fontSize: 10, fontFamily: 'DM Mono' }}
+            tickLine={false} axisLine={false} label={{ value: 'Day', fill: 'var(--text-muted)', fontSize: 10, position: 'insideBottom', offset: -2 }} />
+          <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 10, fontFamily: 'DM Mono' }}
             tickLine={false} axisLine={false} />
           <Tooltip content={<CustomTooltip />} />
           <ReferenceLine x={peakDay} stroke={color} strokeDasharray="4 2" strokeWidth={1.5}
             label={{ value: `Peak: ${peakCases}`, fill: color, fontSize: 10, fontFamily: 'DM Mono', position: 'top' }} />
           <Area type="monotone" dataKey="cases" stroke={color} strokeWidth={2.5}
             fill={`url(#${gradId})`} dot={false}
-            activeDot={{ r: 5, fill: color, stroke: '#111827', strokeWidth: 2 }}
+            activeDot={{ r: 5, fill: color, stroke: 'var(--bg-card)', strokeWidth: 2 }}
             isAnimationActive={true} animationDuration={1200} animationEasing="ease-out" />
         </AreaChart>
       </ResponsiveContainer>

@@ -35,10 +35,10 @@ const CustomTooltip = ({ active, payload }: any) => {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
   return (
-    <div style={{ background: 'rgba(17,24,39,0.95)', border: '1px solid #1e2a3d',
+    <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-glow)',
       borderRadius: 8, padding: '0.5rem 0.75rem', fontFamily: 'DM Mono', fontSize: '0.78rem' }}>
-      <div style={{ color: '#00e5ff' }}>{d.label}</div>
-      <div style={{ color: '#e8edf5' }}>Raw: {d.raw}</div>
+      <div style={{ color: 'var(--cyan)' }}>{d.label}</div>
+      <div style={{ color: 'var(--text-primary)' }}>Raw: {d.raw}</div>
     </div>
   );
 };
@@ -63,12 +63,12 @@ export default function WeatherRadar({ weather }: Props) {
 
       <ResponsiveContainer width="100%" height={220}>
         <RadarChart data={data} margin={{ top: 10, right: 25, bottom: 10, left: 25 }}>
-          <PolarGrid stroke="rgba(255,255,255,0.07)" />
+          <PolarGrid stroke="var(--border-glow)" />
           <PolarAngleAxis dataKey="label"
-            tick={{ fill: '#6b7a99', fontSize: 9, fontFamily: 'DM Mono' }} />
+            tick={{ fill: 'var(--text-muted)', fontSize: 9, fontFamily: 'DM Mono' }} />
           <Tooltip content={<CustomTooltip />} />
-          <Radar dataKey="value" stroke="#00e5ff" strokeWidth={1.5}
-            fill="rgba(0,229,255,0.1)"
+          <Radar dataKey="value" stroke="var(--cyan)" strokeWidth={1.5}
+            fill="rgba(var(--cyan-rgb), 0.08)"
             isAnimationActive animationDuration={900} animationEasing="ease-out" />
         </RadarChart>
       </ResponsiveContainer>
@@ -78,9 +78,9 @@ export default function WeatherRadar({ weather }: Props) {
         {Object.keys(LABELS).map(key => (
           <div key={key} style={{ fontFamily: 'DM Mono', fontSize: '0.72rem',
             display: 'flex', justifyContent: 'space-between', padding: '0.2rem 0',
-            borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-            <span style={{ color: '#6b7a99' }}>{LABELS[key]}</span>
-            <span style={{ color: '#00e5ff' }}>{((weather as any)[key] ?? '—')}</span>
+            borderBottom: '1px solid var(--border-glow)' }}>
+            <span style={{ color: 'var(--text-muted)' }}>{LABELS[key]}</span>
+            <span style={{ color: 'var(--cyan)' }}>{((weather as any)[key] ?? '—')}</span>
           </div>
         ))}
       </div>

@@ -91,7 +91,7 @@ export default function PHRIGauge({ score, riskLevel }: Props) {
         <path
           d={arcPath(CX, CY, R, START_DEG, END_DEG)}
           fill="none"
-          stroke="rgba(255,255,255,0.05)"
+          stroke="var(--border-hover)"
           strokeWidth={6}
           strokeLinecap="round"
         />
@@ -115,7 +115,7 @@ export default function PHRIGauge({ score, riskLevel }: Props) {
           const inner = polarToXY(CX, CY, R - 6, d);
           return (
             <line key={i} x1={inner.x} y1={inner.y} x2={outer.x} y2={outer.y}
-              stroke="rgba(255,255,255,0.15)" strokeWidth={1} />
+              stroke="var(--border-hover)" strokeWidth={1.5} />
           );
         })}
 
@@ -146,7 +146,7 @@ export default function PHRIGauge({ score, riskLevel }: Props) {
 
         {/* Score text */}
         <text x={CX} y={CY - 10} textAnchor="middle" dominantBaseline="middle"
-          fontSize="28" fontWeight="700" fontFamily="DM Sans" fill="#ffffff">
+          fontSize="28" fontWeight="700" fontFamily="DM Sans" fill="var(--text-primary)">
           {displayed.toFixed(2)}
         </text>
         <text x={CX} y={CY + 22} textAnchor="middle" fontSize="9.5" fill="var(--text-muted)" fontFamily="DM Mono">
