@@ -770,3 +770,63 @@ input[type=range]:active::-webkit-slider-thumb {
   background: rgba(248, 250, 252, 0.85);
 }
 
+/* ── UI Upgrade: Hero Split & Animations ─────────────────────────────────── */
+.hero-split-container {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  align-items: center;
+}
+@media (min-width: 768px) {
+  .hero-split-container {
+    grid-template-columns: 1.2fr 1.0fr;
+  }
+}
+
+/* Breathing Pill Glow */
+@keyframes breathingGlow {
+  0%, 100% {
+    box-shadow: 0 0 4px rgba(var(--cyan-rgb), 0.05);
+    border-color: rgba(var(--cyan-rgb), 0.15);
+  }
+  50% {
+    box-shadow: 0 0 10px rgba(var(--cyan-rgb), 0.18);
+    border-color: rgba(var(--cyan-rgb), 0.35);
+  }
+}
+.breathing-pill {
+  animation: breathingGlow 3s ease-in-out infinite;
+}
+
+/* Pipeline Dash Pulse Animation */
+@keyframes pulsePathAnim {
+  0% {
+    stroke-dashoffset: 26;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+.pulse-path {
+  animation: pulsePathAnim 1.0s linear infinite;
+  opacity: 0.85;
+}
+
+/* Shimmer placeholder sweep */
+@keyframes shimmerSweep {
+  0% {
+    opacity: 0.3;
+    border-color: var(--border-glow);
+  }
+  50% {
+    opacity: 0.65;
+    border-color: var(--cyan);
+    box-shadow: 0 0 8px rgba(var(--cyan-rgb), 0.03);
+  }
+  100% {
+    opacity: 0.3;
+    border-color: var(--border-glow);
+  }
+}
+
+
