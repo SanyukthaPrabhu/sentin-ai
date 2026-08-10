@@ -1,4 +1,4 @@
-"""
+﻿"""
 nasa_power_parser.py
 ====================
 Step 1 of the Sentin-AI build order.
@@ -9,9 +9,9 @@ Responsibilities:
   - Engineer derived features (rolling stats, lag features)
   - Build 30-day sliding window sequences ready for LSTM input
   - Save:
-      data/weather_cache/weather_features.csv   ← cleaned daily rows
-      data/weather_cache/lstm_sequences.npy     ← (N, 30, 10) array
-      data/weather_cache/lstm_labels.npy        ← (N,) placeholder labels
+      data/weather_cache/weather_features.csv   <- cleaned daily rows
+      data/weather_cache/lstm_sequences.npy     <- (N, 30, 10) array
+      data/weather_cache/lstm_labels.npy        <- (N,) placeholder labels
 
 Usage:
   python src/nasa_power_parser.py
@@ -34,7 +34,7 @@ OUT_CSV     = WEATHER_DIR / "weather_features.csv"
 OUT_SEQ     = WEATHER_DIR / "lstm_sequences.npy"
 OUT_LABELS  = WEATHER_DIR / "lstm_labels.npy"
 
-# ── NASA POWER column names → our internal names ───────────────────────────
+# ── NASA POWER column names -> our internal names ───────────────────────────
 # Adjust left-hand keys if your downloaded CSV uses different headers.
 COLUMN_MAP = {
     "T2M"          : "temperature_2m_c",
@@ -65,7 +65,11 @@ LSTM_FEATURES = [
     "vegetation_anomaly_score",
 ]
 
-WINDOW_SIZE = 30   # days per LSTM sequence
+WINDOW_SIZE = 30   # days per LSTM input sequence
+HORIZON     = 14   # days ahead to look for outbreak label
+
+# IDSP weekly labels ground truth
+IDSP_LABELS_CSV = ROOT / "data" / "idsp_bulletins" / "parsed" / "weekly_labels.csv"
 
 
 # ── 1. Loader ──────────────────────────────────────────────────────────────
@@ -207,13 +211,47 @@ def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
 
 
 # ── 4. Sequence builder ────────────────────────────────────────────────────
-def build_sequences(df: pd.DataFrame, window: int = WINDOW_SIZE):
+def _load_idsp_outbreak_dates() -> set:
     """
-    Sliding window over LSTM_FEATURES to produce (N, window, 10) array.
-    Labels are placeholder zeros — will be replaced by IDSP ground truth
-    in backtest.py (Step 3).
+    Load IDSP weekly outbreak records and return a set of all dates
+    (as datetime.date objects) that fall within an outbreak week (label==1).
+    Used to assign binary labels to the 14-day forward prediction horizon.
     """
-    print(f"[4/5] Building {window}-day sliding window sequences ...")
+    if not IDSP_LABELS_CSV.exists():
+        print(f"    [WARN] {IDSP_LABELS_CSV} not found — all labels will be 0.")
+        return set()
+
+    df = pd.read_csv(IDSP_LABELS_CSV, parse_dates=["week_start", "week_end"])
+    outbreak_dates = set()
+    for _, row in df[df["label"] == 1].iterrows():
+        # Expand each outbreak week into individual dates
+        d = row["week_start"].date()
+        while d <= row["week_end"].date():
+            outbreak_dates.add(d)
+            d += pd.Timedelta(days=1).to_pytimedelta()
+    print(f"    [IDSP] Loaded {len(outbreak_dates)} outbreak days from {len(df[df['label']==1])} outbreak weeks.")
+    return outbreak_dates
+
+
+def build_sequences(df: pd.DataFrame, window: int = WINDOW_SIZE, horizon: int = HORIZON):
+    """
+    Sliding window over LSTM_FEATURES to produce (N, window, 10) array
+    with FORWARD-LOOKING labels aligned to IDSP weekly outbreak ground truth.
+
+    For each sample i:
+      Input   : days [ i  …  i + window - 1 ]   (30 days of weather + YOLO)
+      Horizon : days [ i + window  …  i + window + horizon - 1 ]   (next 14 days)
+      Label   : 1 if ANY IDSP outbreak day falls in the horizon, else 0
+
+    This makes the LSTM genuinely predictive:
+      "Given the last 30 days of conditions, will an outbreak begin in the next 14 days?"
+
+    The scaler (col_min, col_max) is computed here over the FULL feature matrix
+    and saved to models/feature_scaler.npz for consistent inference normalisation.
+    NOTE: lstm_model.py re-fits the scaler on TRAIN ONLY before saving — this
+    provides a complete-dataset scaler as a fallback for historical scoring.
+    """
+    print(f"[4/5] Building {window}-day sequences with {horizon}-day forward labels ...")
 
     # Validate all required LSTM features are present
     missing_feats = [f for f in LSTM_FEATURES if f not in df.columns]
@@ -221,22 +259,74 @@ def build_sequences(df: pd.DataFrame, window: int = WINDOW_SIZE):
         raise ValueError(f"Missing LSTM feature columns: {missing_feats}")
 
     feature_matrix = df[LSTM_FEATURES].values.astype(np.float32)
+    dates = df.index  # DatetimeIndex
 
-    # Min-max normalise each feature independently
-    col_min = feature_matrix.min(axis=0)
-    col_max = feature_matrix.max(axis=0)
-    col_range = np.where((col_max - col_min) == 0, 1, col_max - col_min)
-    feature_matrix = (feature_matrix - col_min) / col_range
+    # ── Compute and save scaler over FULL dataset (pre-split) ────────────────
+    # lstm_model.py will re-fit on train split only and overwrite this file.
+    col_min   = feature_matrix.min(axis=0)
+    col_max   = feature_matrix.max(axis=0)
+    col_range = np.where((col_max - col_min) == 0, 1.0, col_max - col_min)
+    feature_matrix_norm = (feature_matrix - col_min) / col_range
 
-    sequences, labels = [], []
-    for i in range(len(feature_matrix) - window):
-        sequences.append(feature_matrix[i : i + window])
-        labels.append(0.0)   # placeholder — backtest.py will overwrite
+    # Save scaler (full-dataset version; will be overwritten by train-only scaler later)
+    MODELS_DIR = ROOT / "models"
+    MODELS_DIR.mkdir(parents=True, exist_ok=True)
+    scaler_path = MODELS_DIR / "feature_scaler.npz"
+    np.savez(scaler_path, col_min=col_min, col_max=col_max)
+    print(f"    [Scaler] Saved (full-dataset) -> {scaler_path}")
+    print(f"    [Scaler] col_min: {col_min.round(3)}")
+    print(f"    [Scaler] col_max: {col_max.round(3)}")
 
-    X = np.array(sequences, dtype=np.float32)   # (N, 30, 10)
+    # ── Load IDSP outbreak dates for forward-looking label assignment ───
+    outbreak_dates = _load_idsp_outbreak_dates()
+
+    # ── Sliding window over normalised feature matrix ─────────────────
+    sequences, labels, alignment_rows = [], [], []
+
+    # Need enough room for window + horizon
+    n_total = len(feature_matrix_norm)
+    for i in range(n_total - window - horizon + 1):
+        seq_start_date    = dates[i].date()
+        seq_end_date      = dates[i + window - 1].date()
+        horizon_start     = dates[i + window].date()
+        horizon_end       = dates[min(i + window + horizon - 1, n_total - 1)].date()
+
+        # Forward-looking label: 1 if any IDSP outbreak day in [horizon_start, horizon_end]
+        label = 0
+        if outbreak_dates:
+            d = horizon_start
+            while d <= horizon_end:
+                if d in outbreak_dates:
+                    label = 1
+                    break
+                d += pd.Timedelta(days=1).to_pytimedelta()
+
+        sequences.append(feature_matrix_norm[i : i + window])
+        labels.append(float(label))
+        alignment_rows.append({
+            "seq_index":     i,
+            "seq_start":     str(seq_start_date),
+            "seq_end":       str(seq_end_date),
+            "horizon_start": str(horizon_start),
+            "horizon_end":   str(horizon_end),
+            "label":         label,
+        })
+
+    X = np.array(sequences, dtype=np.float32)   # (N, window, 10)
     y = np.array(labels,    dtype=np.float32)   # (N,)
 
+    pos = int(y.sum()); neg = int((y == 0).sum())
     print(f"    Sequences shape: {X.shape}  |  Labels shape: {y.shape}")
+    print(f"    Label distribution — Positive: {pos} ({100*y.mean():.1f}%)  Negative: {neg}")
+    if outbreak_dates and pos == 0:
+        print("    [WARN] No positive labels generated. Check that horizon dates overlap IDSP outbreak weeks.")
+
+    # Save alignment CSV for traceability
+    alignment_df = pd.DataFrame(alignment_rows)
+    alignment_path = WEATHER_DIR / "label_alignment.csv"
+    alignment_df.to_csv(alignment_path, index=False)
+    print(f"    [Alignment] Saved -> {alignment_path}")
+
     return X, y
 
 

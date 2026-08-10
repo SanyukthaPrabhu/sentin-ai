@@ -1,4 +1,4 @@
-"""
+﻿"""
 yolo_inference.py
 =================
 Step 10 of the Sentin-AI build order.  Phase 4 — Satellite.
@@ -16,7 +16,7 @@ Responsibilities:
       stagnant_water_area_px  (float)
       garbage_count           (int)
       vegetation_anomaly_score (float, NDVI delta from baseline)
-  - Save yolo_features.csv → data/raw_imagery/yolo_features.csv
+  - Save yolo_features.csv -> data/raw_imagery/yolo_features.csv
 
 NOTE on model:
   Using yolov8m-seg.pt (COCO pretrained) as a stand-in.
@@ -66,7 +66,7 @@ if not YOLO_WEIGHTS:
 
 CONF_THRESH   = float(os.getenv("YOLO_CONF", 0.25))
 
-# ── COCO class → Sentin-AI proxy mapping ───────────────────────────────────────
+# ── COCO class -> Sentin-AI proxy mapping ───────────────────────────────────────
 # COCO class names (80 classes, 0-indexed)
 # We use proxies since custom fine-tuned weights don't exist yet.
 COCO_CLASSES = [
@@ -156,7 +156,13 @@ class YOLOInference:
 
         Returns
         -------
-        list of dicts: [{class_id, class_name, confidence, area_px}, ...]
+        list of dicts:
+          {class_id, class_name, confidence, area_px, mask_available}
+
+        area_px is the SEGMENTATION MASK pixel count when masks are available
+        (model returns result.masks), otherwise falls back to bounding-box area.
+        Mask pixel area is technically more defensible: it measures the actual
+        occupied footprint rather than the bounding rectangle.
         """
         results = self.model.predict(
             source=str(image_path),
@@ -170,21 +176,42 @@ class YOLOInference:
             boxes = result.boxes
             if boxes is None:
                 continue
-            for box in boxes:
+
+            # Check if segmentation masks are available for this result
+            masks = result.masks  # None if model is detection-only
+
+            for idx, box in enumerate(boxes):
                 cls_id = int(box.cls[0].item())
                 conf   = float(box.conf[0].item())
-                # Bounding box area in pixels
-                x1, y1, x2, y2 = box.xyxy[0].tolist()
-                area = (x2 - x1) * (y2 - y1)
-                
+
+                # ── Area calculation ──────────────────────────────────────
+                # Priority 1: segmentation mask pixel count (most accurate)
+                # Priority 2: bounding-box area (fallback)
+                mask_available = False
+                if masks is not None and idx < len(masks):
+                    try:
+                        # masks.data shape: (N, H, W) — one binary mask per detection
+                        mask_pixels = int(masks.data[idx].sum().item())
+                        area = float(mask_pixels)
+                        mask_available = True
+                    except Exception:
+                        # Unexpected mask format — fall back to bbox
+                        x1, y1, x2, y2 = box.xyxy[0].tolist()
+                        area = (x2 - x1) * (y2 - y1)
+                else:
+                    # No masks from this model — use bounding-box area
+                    x1, y1, x2, y2 = box.xyxy[0].tolist()
+                    area = (x2 - x1) * (y2 - y1)
+
                 # Fetch name dynamically from model.names
                 cname = self.model.names[cls_id] if cls_id in self.model.names else str(cls_id)
-                
+
                 detections.append({
-                    "class_id":   cls_id,
-                    "class_name": cname,
-                    "confidence": round(conf, 3),
-                    "area_px":    round(area, 1),
+                    "class_id":      cls_id,
+                    "class_name":    cname,
+                    "confidence":    round(conf, 3),
+                    "area_px":       round(area, 1),
+                    "mask_available": mask_available,
                 })
 
         return detections

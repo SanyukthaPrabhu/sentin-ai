@@ -1,4 +1,4 @@
-"""
+﻿"""
 phri_engine.py
 ==============
 Step 5 of the Sentin-AI build order.
@@ -6,7 +6,7 @@ Step 5 of the Sentin-AI build order.
 Responsibilities:
   - Accept weather features + YOLO visual features as input
   - Normalise them into the same (30, 10) window format the LSTM expects
-  - Load the trained LSTM and run inference → raw PHRI score
+  - Load the trained LSTM and run inference -> raw PHRI score
   - Apply confidence adjustment based on data completeness
   - Return a PHRIResult dataclass with score, confidence, and metadata
 
@@ -37,6 +37,7 @@ ROOT              = Path(__file__).resolve().parent.parent
 WEATHER_DIR       = ROOT / "data" / "weather_cache"
 IMAGERY_DIR       = ROOT / "data" / "raw_imagery"
 MODEL_PATH        = ROOT / "models" / "lstm_phri.h5"
+SCALER_PATH       = ROOT / "models" / "feature_scaler.npz"
 FEATURES_CSV      = WEATHER_DIR / "weather_features.csv"
 YOLO_FEATURES_CSV = IMAGERY_DIR / "yolo_features.csv"
 
@@ -87,7 +88,7 @@ class PHRIResult:
         return (
             f"PHRI={self.phri_score:.3f}  Risk={self.risk_level}  "
             f"Confidence={self.confidence:.2f}  "
-            f"Visual={'✅' if self.visual_complete else '⚠ placeholder'}  "
+            f"Visual={'✅' if self.visual_complete else '! placeholder'}  "
             f"Date={self.window_end_date}"
         )
 
@@ -100,25 +101,56 @@ def _risk_level(score: float) -> str:
     return "CRITICAL"
 
 
-# ── Normalizer ─────────────────────────────────────────────────────────────
-def _normalize(value: float, feat_name: str) -> float:
-    lo, hi = FEATURE_BOUNDS[feat_name]
-    if hi == lo:
-        return 0.0
-    return float(np.clip((value - lo) / (hi - lo), 0.0, 1.0))
+# ── Normalizer ─────────────────────────────────────────────────────
+# Module-level scaler cache — loaded once, reused on every call.
+_scaler_cache: Optional[dict] = None
+
+
+def _load_scaler() -> dict:
+    """
+    Load the saved feature scaler (fit on training data by lstm_model.py).
+    Falls back to FEATURE_BOUNDS-derived stats if the .npz file doesn't exist.
+    Cached after first load for efficiency.
+    """
+    global _scaler_cache
+    if _scaler_cache is not None:
+        return _scaler_cache
+
+    if SCALER_PATH.exists():
+        data = np.load(SCALER_PATH)
+        _scaler_cache = {
+            "col_min": data["col_min"].astype(np.float32),
+            "col_max": data["col_max"].astype(np.float32),
+        }
+        print(f"[PHRIEngine] Scaler loaded from {SCALER_PATH.name} (train-fit stats).")
+    else:
+        print(
+            f"[PHRIEngine] !  feature_scaler.npz not found at {SCALER_PATH}.\n"
+            "             Falling back to hard-coded FEATURE_BOUNDS.\n"
+            "             Run: python src/lstm_model.py  to generate the saved scaler."
+        )
+        # Build col_min / col_max from FEATURE_BOUNDS as a fallback
+        col_min = np.array([FEATURE_BOUNDS[f][0] for f in LSTM_FEATURES], dtype=np.float32)
+        col_max = np.array([FEATURE_BOUNDS[f][1] for f in LSTM_FEATURES], dtype=np.float32)
+        _scaler_cache = {"col_min": col_min, "col_max": col_max}
+
+    return _scaler_cache
 
 
 def _normalize_window(window: np.ndarray) -> np.ndarray:
     """
     Normalize a (30, 10) raw feature window column-by-column
-    using FEATURE_BOUNDS.
+    using the SAVED SCALER (fit on training data).
+    Falls back to FEATURE_BOUNDS only if feature_scaler.npz is absent.
     """
+    scaler = _load_scaler()
+    col_min = scaler["col_min"]   # shape (10,)
+    col_max = scaler["col_max"]   # shape (10,)
+    col_range = np.where((col_max - col_min) == 0, 1.0, col_max - col_min)
+
     out = window.copy().astype(np.float32)
-    for j, feat in enumerate(LSTM_FEATURES):
-        lo, hi = FEATURE_BOUNDS[feat]
-        rng = hi - lo if (hi - lo) != 0 else 1.0
-        out[:, j] = np.clip((out[:, j] - lo) / rng, 0.0, 1.0)
-    return out
+    out = (out - col_min) / col_range
+    return np.clip(out, 0.0, 1.0)
 
 
 # ── Main engine class ──────────────────────────────────────────────────────
@@ -348,7 +380,7 @@ class PHRIEngine:
         missing        = required_keys - weather_keys
         weather_complete = len(missing) == 0
         if missing:
-            print(f"[PHRIEngine] ⚠  Missing weather keys: {missing} — using 0.0")
+            print(f"[PHRIEngine] !  Missing weather keys: {missing} — using 0.0")
 
         confidence = 1.0 if (visual_complete and weather_complete) else \
                      0.85 if weather_complete else 0.60
