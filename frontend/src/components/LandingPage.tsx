@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { motion } from 'framer-motion';
 import type { LocationConfig } from '../api';
 
@@ -111,9 +112,8 @@ export default function LandingPage({ onStartSurveillance, onNavigateToStress, t
         </div>
         <div className="pipeline-diagram">
           {PIPELINE_NODES.map((node, i) => (
-            <>
+            <Fragment key={node.label}>
               <motion.div
-                key={node.label}
                 className="pipeline-node"
                 whileHover={{ borderColor: 'var(--cyan)', y: -2 }}
                 initial={{ opacity: 0, y: 8 }}
@@ -125,7 +125,7 @@ export default function LandingPage({ onStartSurveillance, onNavigateToStress, t
                 <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{node.sub}</span>
               </motion.div>
               {i < PIPELINE_NODES.length - 1 && <div className="pipeline-connector" />}
-            </>
+            </Fragment>
           ))}
         </div>
       </motion.div>
