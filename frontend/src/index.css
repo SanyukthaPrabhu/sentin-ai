@@ -243,11 +243,15 @@ h1, h2, h3 {
   border-radius: var(--radius);
   padding: 1.5rem;
   text-align: left;
-  transition: all 0.2s ease;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
 }
 .landing-card:hover {
   border-color: var(--border-hover);
-  transform: translateY(-2px);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.2);
+}
+.light-mode .landing-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
 .landing-card-icon {
@@ -342,13 +346,18 @@ h1, h2, h3 {
   border: 1px solid var(--border-glow);
   border-radius: var(--radius);
   padding: 1.25rem;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
   position: relative;
   overflow: hidden;
 }
 
 .card:hover {
   border-color: var(--border-hover);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.18);
+  transform: translateY(-1px);
+}
+.light-mode .card:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.07);
 }
 
 .card.risk-low      { border-left: 3px solid var(--green); }
@@ -368,13 +377,13 @@ h1, h2, h3 {
 /* ── Section Header ─────────────────────────────────────────────────────── */
 .section-label {
   font-family: 'DM Mono', monospace;
-  font-size: 0.7rem;
+  font-size: 0.67rem;
   font-weight: 500;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
   color: var(--text-muted);
   border-bottom: 1px solid var(--border-glow);
-  padding-bottom: 0.4rem;
+  padding-bottom: 0.35rem;
   margin-bottom: 1rem;
 }
 
@@ -390,10 +399,13 @@ h1, h2, h3 {
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 150ms ease, background-color 150ms ease;
+  transition: opacity 150ms ease, background-color 150ms ease, transform 120ms ease, box-shadow 150ms ease;
   user-select: none;
 }
-.btn:active { opacity: 0.9; }
+.btn:active {
+  opacity: 0.88;
+  transform: scale(0.97);
+}
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .btn-primary {
@@ -402,6 +414,8 @@ h1, h2, h3 {
 }
 .btn-primary:hover {
   background: #0284c7;
+  box-shadow: 0 0 14px rgba(var(--cyan-rgb), 0.35);
+  transform: translateY(-1px);
 }
 
 .btn-secondary {
@@ -410,8 +424,9 @@ h1, h2, h3 {
   color: var(--text-primary);
 }
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.07);
   border-color: var(--border-hover);
+  transform: translateY(-1px);
 }
 
 .btn-full { width: 100%; justify-content: center; }
@@ -877,4 +892,41 @@ input[type=range]:active::-webkit-slider-thumb {
   }
 }
 
+/* ── GPU Compositing Hints ──────────────────────────────────────────────── */
+.card,
+.landing-card,
+.btn {
+  will-change: transform;
+}
 
+/* ── Reduced Motion Overrides ───────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .card:hover,
+  .landing-card:hover,
+  .btn:hover,
+  .btn:active {
+    transform: none !important;
+  }
+  .btn-primary:hover {
+    box-shadow: none !important;
+  }
+  .pulse-path,
+  .breathing-pill,
+  .badge-low,
+  .badge-medium,
+  .badge-high,
+  .badge-critical,
+  .ping-dot::after,
+  .orbit-sat,
+  .card.shimmer::before {
+    animation: none !important;
+  }
+}

@@ -359,67 +359,96 @@ export default function App() {
                     {result && (
                       <motion.div
                         key="results"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 0.4 }}
+                        initial="hidden"
+                        animate="show"
+                        variants={{
+                          hidden: { opacity: 0 },
+                          show: {
+                            opacity: 1,
+                            transition: { staggerChildren: 0.06, delayChildren: 0.05 }
+                          }
+                        }}
                       >
-                        <div className="section-label">Risk Assessment</div>
-                        <div className="grid-5" style={{ marginBottom: '1.25rem' }}>
-                          <PHRIGauge score={score} riskLevel={riskLevel} />
-                          <MetricCard title="Disease Risk" value={result.disease.label}
-                            sub={result.disease.primary_bucket.replace(/_/g, ' ')} color={color} delay={0.06} />
-                          <MetricCard title="Peak Cases" value={result.seir.peak_cases}
-                            sub={`Day ${result.seir.peak_day} of ${result.seir.projection_days}`}
-                            color={color} delay={0.12} numeric />
-                          <MetricCard title="14-Day Total" value={result.seir.total_projected}
-                            sub={`Attack rate ${result.seir.attack_rate_pct.toFixed(3)}%`}
-                            color={color} delay={0.18} numeric />
-                          <MetricCard title="Confidence"
-                            value={`${(result.phri.confidence * 100).toFixed(0)}%`}
-                            sub={result.phri.visual_complete ? '✅ Visual + Weather' : '🌡️ Weather only'}
-                            color="var(--cyan)" delay={0.24} />
-                        </div>
+                        {/* ── Risk Assessment ── */}
+                        <motion.div
+                          variants={{ hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0, transition: { duration: 0.45 } } }}
+                        >
+                          <div className="section-label">Risk Assessment</div>
+                          <div className="grid-5" style={{ marginBottom: '1.25rem' }}>
+                            <PHRIGauge score={score} riskLevel={riskLevel} />
+                            <MetricCard title="Disease Risk" value={result.disease.label}
+                              sub={result.disease.primary_bucket.replace(/_/g, ' ')} color={color} delay={0.06} />
+                            <MetricCard title="Peak Cases" value={result.seir.peak_cases}
+                              sub={`Day ${result.seir.peak_day} of ${result.seir.projection_days}`}
+                              color={color} delay={0.12} numeric />
+                            <MetricCard title="14-Day Total" value={result.seir.total_projected}
+                              sub={`Attack rate ${result.seir.attack_rate_pct.toFixed(3)}%`}
+                              color={color} delay={0.18} numeric />
+                            <MetricCard title="Confidence"
+                              value={`${(result.phri.confidence * 100).toFixed(0)}%`}
+                              sub={result.phri.visual_complete ? '✅ Visual + Weather' : '🌡️ Weather only'}
+                              color="var(--cyan)" delay={0.24} />
+                          </div>
+                        </motion.div>
 
-                        <div className="section-label" style={{ marginTop: '0.5rem' }}>
-                          Satellite Perception Layer (Sentinel-2 {location.radius_km}km ROI)
-                        </div>
-                        <div style={{ marginBottom: '1.25rem' }}>
-                          <SatellitePanel
-                            rgbB64={result.rgb_b64 ?? imagery?.rgb_b64 ?? null}
-                            ndwiB64={result.ndwi_b64 ?? imagery?.ndwi_b64 ?? null}
-                            meta={result.live_meta ?? imagery?.meta ?? null}
-                            locationName={location.location_name}
-                            lat={location.lat} lon={location.lon} radiusKm={location.radius_km}
-                          />
-                        </div>
+                        {/* ── Satellite Layer ── */}
+                        <motion.div
+                          variants={{ hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0, transition: { duration: 0.45 } } }}
+                        >
+                          <div className="section-label" style={{ marginTop: '0.5rem' }}>
+                            Satellite Perception Layer (Sentinel-2 {location.radius_km}km ROI)
+                          </div>
+                          <div style={{ marginBottom: '1.25rem' }}>
+                            <SatellitePanel
+                              rgbB64={result.rgb_b64 ?? imagery?.rgb_b64 ?? null}
+                              ndwiB64={result.ndwi_b64 ?? imagery?.ndwi_b64 ?? null}
+                              meta={result.live_meta ?? imagery?.meta ?? null}
+                              locationName={location.location_name}
+                              lat={location.lat} lon={location.lon} radiusKm={location.radius_km}
+                            />
+                          </div>
+                        </motion.div>
 
-                        <div className="section-label">Projection & Environment</div>
-                        <div className="grid-2" style={{ marginBottom: '1.25rem' }}>
-                          <SEIRChart
-                            newCasesCurve={result.seir.new_cases_curve}
-                            peakCases={result.seir.peak_cases}
-                            peakDay={result.seir.peak_day}
-                            totalProjected={result.seir.total_projected}
-                            diseaseLabel={result.seir.disease_label}
-                            phriScore={score}
-                          />
-                          <WeatherRadar weather={result.weather} />
-                        </div>
+                        {/* ── Projection & Environment ── */}
+                        <motion.div
+                          variants={{ hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0, transition: { duration: 0.45 } } }}
+                        >
+                          <div className="section-label">Projection &amp; Environment</div>
+                          <div className="grid-2" style={{ marginBottom: '1.25rem' }}>
+                            <SEIRChart
+                              newCasesCurve={result.seir.new_cases_curve}
+                              peakCases={result.seir.peak_cases}
+                              peakDay={result.seir.peak_day}
+                              totalProjected={result.seir.total_projected}
+                              diseaseLabel={result.seir.disease_label}
+                              phriScore={score}
+                            />
+                            <WeatherRadar weather={result.weather} />
+                          </div>
+                        </motion.div>
 
+                        {/* ── Historical Timeline ── */}
                         {history.length > 0 && (
-                          <>
+                          <motion.div
+                            variants={{ hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0, transition: { duration: 0.45 } } }}
+                          >
                             <div className="section-label">Historical Risk Timeline</div>
                             <div style={{ marginBottom: '1.25rem' }}>
                               <HistoricalTimeline data={history} isProxy={isProxy} />
                             </div>
-                          </>
+                          </motion.div>
                         )}
 
-                        <div className="section-label">Health Bulletin</div>
-                        <div className="grid-2" style={{ marginBottom: '1.25rem' }}>
-                          <HealthBulletin bulletin={result.bulletin} />
-                          <ActionItems disease={result.disease} actionItems={result.bulletin.action_items} />
-                        </div>
+                        {/* ── Health Bulletin ── */}
+                        <motion.div
+                          variants={{ hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0, transition: { duration: 0.45 } } }}
+                        >
+                          <div className="section-label">Health Bulletin</div>
+                          <div className="grid-2" style={{ marginBottom: '1.25rem' }}>
+                            <HealthBulletin bulletin={result.bulletin} />
+                            <ActionItems disease={result.disease} actionItems={result.bulletin.action_items} />
+                          </div>
+                        </motion.div>
                       </motion.div>
                     )}
                   </AnimatePresence>
