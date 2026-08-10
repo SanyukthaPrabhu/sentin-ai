@@ -70,7 +70,7 @@ export default function HistoricalTimeline({ data, isProxy = true }: Props) {
             tickLine={false} axisLine={false} interval={Math.ceil(sampled.length / 8)} />
           <YAxis domain={[0, 1]} tick={{ fill: 'var(--text-muted)', fontSize: 9, fontFamily: 'DM Mono' }}
             tickLine={false} axisLine={false} tickFormatter={v => v.toFixed(1)} />
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip content={<CustomTooltip />} animationDuration={200} />
           {/* Alert threshold band */}
           <ReferenceLine y={0.70} stroke="rgba(239,68,68,0.3)" strokeDasharray="5 3"
             label={{ value: 'Alert 0.70', fill: 'var(--red)', fontSize: 9, fontFamily: 'DM Mono', position: 'right' }} />

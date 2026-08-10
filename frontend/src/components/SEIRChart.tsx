@@ -68,7 +68,7 @@ export default function SEIRChart({ newCasesCurve, peakCases, peakDay, totalProj
             tickLine={false} axisLine={false} label={{ value: 'Day', fill: 'var(--text-muted)', fontSize: 10, position: 'insideBottom', offset: -2 }} />
           <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 10, fontFamily: 'DM Mono' }}
             tickLine={false} axisLine={false} />
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip content={<CustomTooltip />} animationDuration={200} />
           <ReferenceLine x={peakDay} stroke={color} strokeDasharray="4 2" strokeWidth={1.5}
             label={{ value: `Peak: ${peakCases}`, fill: color, fontSize: 10, fontFamily: 'DM Mono', position: 'top' }} />
           <Area type="monotone" dataKey="cases" stroke={color} strokeWidth={2.5}

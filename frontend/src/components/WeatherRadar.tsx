@@ -66,7 +66,7 @@ export default function WeatherRadar({ weather }: Props) {
           <PolarGrid stroke="var(--border-glow)" />
           <PolarAngleAxis dataKey="label"
             tick={{ fill: 'var(--text-muted)', fontSize: 9, fontFamily: 'DM Mono' }} />
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip content={<CustomTooltip />} animationDuration={200} />
           <Radar dataKey="value" stroke="var(--cyan)" strokeWidth={1.5}
             fill="rgba(var(--cyan-rgb), 0.08)"
             isAnimationActive animationDuration={900} animationEasing="ease-out" />

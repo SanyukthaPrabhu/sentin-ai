@@ -97,15 +97,12 @@ export default function PHRIGauge({ score, riskLevel }: Props) {
         />
 
         {/* Animated fill arc */}
-        <motion.path
-          d={arcPath(CX, CY, R, START_DEG, START_DEG + score * (END_DEG - START_DEG))}
+        <path
+          d={arcPath(CX, CY, R, START_DEG, START_DEG + displayed * (END_DEG - START_DEG))}
           fill="none"
           stroke={color}
           strokeWidth={6}
           strokeLinecap="round"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: 1 }}
-          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
         />
 
         {/* Tick marks */}
@@ -130,15 +127,12 @@ export default function PHRIGauge({ score, riskLevel }: Props) {
         })}
 
         {/* Needle */}
-        <motion.line
+        <line
           x1={CX} y1={CY}
           x2={needleXY.x} y2={needleXY.y}
           stroke={color}
           strokeWidth={2.5}
           strokeLinecap="round"
-          initial={{ rotate: START_DEG - 90, originX: CX, originY: CY }}
-          animate={{ rotate: needleDeg - 90 }}
-          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
         />
 
         {/* Centre dot */}
