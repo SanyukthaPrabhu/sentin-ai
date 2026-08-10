@@ -51,7 +51,19 @@ METADATA_CSV  = IMAGERY_DIR / "sentinel2_metadata.csv"
 FEATURES_CSV  = IMAGERY_DIR / "yolo_features.csv"
 
 # ── Config ─────────────────────────────────────────────────────────────────────
-YOLO_WEIGHTS  = os.getenv("YOLO_WEIGHTS", "yolov8m-seg.pt")   # auto-downloads if not present
+# YOLO WEIGHTS RESOLUTION
+# Priority:
+# 1. Environment variable YOLO_WEIGHTS (if set)
+# 2. Local custom weights models/yolo_custom.pt (if exists)
+# 3. Pretrained models yolov8m-seg.pt
+YOLO_WEIGHTS = os.getenv("YOLO_WEIGHTS")
+if not YOLO_WEIGHTS:
+    DEFAULT_CUSTOM_WEIGHTS = ROOT / "models" / "yolo_custom.pt"
+    if DEFAULT_CUSTOM_WEIGHTS.exists():
+        YOLO_WEIGHTS = str(DEFAULT_CUSTOM_WEIGHTS)
+    else:
+        YOLO_WEIGHTS = "yolov8m-seg.pt"   # auto-downloads if not present
+
 CONF_THRESH   = float(os.getenv("YOLO_CONF", 0.25))
 
 # ── COCO class → Sentin-AI proxy mapping ───────────────────────────────────────
@@ -103,20 +115,20 @@ class YOLOInference:
       stagnant_water_count     int   — number of detected water-proxy boxes
       stagnant_water_area_px   float — total pixel area of water detections
       garbage_count            int   — number of garbage-proxy detections
-      vegetation_anomaly_score float — NDWI-based water extent score
-                                       (higher = more water than baseline)
+      vegetation_anomaly_score float — vegetation anomaly/stress mask density
     """
 
     def __init__(self, weights: str = YOLO_WEIGHTS, conf: float = CONF_THRESH):
         self.weights  = weights
         self.conf     = conf
+        self.is_custom = False
         self.model    = self._load_model()
         self.baseline_ndwi = None   # set from first dry-season image
 
     # ── Model loading ──────────────────────────────────────────────────────────
 
     def _load_model(self):
-        """Load YOLOv8 model. Downloads yolov8m-seg.pt on first run (~50 MB)."""
+        """Load YOLOv8 model. Downloads pretrained weight file on first run."""
         try:
             from ultralytics import YOLO
         except ImportError:
@@ -126,6 +138,14 @@ class YOLOInference:
         print(f"[YOLO] Loading model: {self.weights}")
         model = YOLO(self.weights)
         print(f"[YOLO] Model loaded. Task: {model.task}")
+        
+        # Dynamically inspect classes to check if they match our custom fine-tuned model
+        self.is_custom = "stagnant_water" in model.names.values() or "garbage_pile" in model.names.values()
+        if self.is_custom:
+            print(f"[YOLO] Dynamic class detection: LOADED CUSTOM model. Classes: {model.names}")
+        else:
+            print(f"[YOLO] Dynamic class detection: LOADED PRETRAINED COCO model (using proxies).")
+            
         return model
 
     # ── Single image inference ─────────────────────────────────────────────────
@@ -156,9 +176,13 @@ class YOLOInference:
                 # Bounding box area in pixels
                 x1, y1, x2, y2 = box.xyxy[0].tolist()
                 area = (x2 - x1) * (y2 - y1)
+                
+                # Fetch name dynamically from model.names
+                cname = self.model.names[cls_id] if cls_id in self.model.names else str(cls_id)
+                
                 detections.append({
                     "class_id":   cls_id,
-                    "class_name": COCO_CLASSES[cls_id] if cls_id < len(COCO_CLASSES) else str(cls_id),
+                    "class_name": cname,
                     "confidence": round(conf, 3),
                     "area_px":    round(area, 1),
                 })
@@ -191,39 +215,55 @@ class YOLOInference:
         water_count  = 0
         water_area   = 0.0
         garbage_count = 0
+        veg_anomaly_area = 0.0
 
         for det in detections:
             cid = det["class_id"]
-            if cid in WATER_PROXY_IDS:
-                water_count += 1
-                water_area  += det["area_px"]
-            elif cid in GARBAGE_PROXY_IDS:
-                garbage_count += 1
+            cname = det["class_name"]
+            
+            if self.is_custom:
+                # Custom Model direct class resolution
+                if cname == "stagnant_water":
+                    water_count += 1
+                    water_area  += det["area_px"]
+                elif cname == "garbage_pile":
+                    garbage_count += 1
+                elif cname == "vegetation_anomaly":
+                    veg_anomaly_area += det["area_px"]
+            else:
+                # COCO Proxy fallback resolution
+                if cid in WATER_PROXY_IDS:
+                    water_count += 1
+                    water_area  += det["area_px"]
+                elif cid in GARBAGE_PROXY_IDS:
+                    garbage_count += 1
+                elif cid in VEGETATION_PROXY_IDS:
+                    veg_anomaly_area += det["area_px"]
 
-        # ── NDWI-based vegetation anomaly score ───────────────────────────────
-        # We use NDWI positivity fraction as a proxy for water extent.
-        # Higher fraction = more standing water than baseline = higher risk.
-        veg_anomaly = 0.0
-        if ndwi_array is not None and len(ndwi_array) > 0:
-            valid = ndwi_array[~np.isnan(ndwi_array)]
-            if len(valid) > 0:
-                # Fraction of pixels with NDWI > 0 (water-positive)
-                water_positive_frac = float(np.mean(valid > 0.0))
-
-                # Set baseline from first observation
-                if self.baseline_ndwi is None:
-                    self.baseline_ndwi = water_positive_frac
-                    veg_anomaly = 0.0
-                else:
-                    # Anomaly = deviation above baseline (capped at 1.0)
-                    veg_anomaly = max(0.0, water_positive_frac - self.baseline_ndwi)
-                    veg_anomaly = min(1.0, veg_anomaly * 10.0)   # scale to [0,1]
-        elif ndvi_mean is not None:
-            # Fallback: use NDVI depression as anomaly indicator
-            # Low NDVI relative to typical Bengaluru (~0.30) = stress
-            baseline_ndvi = 0.30
-            veg_anomaly = max(0.0, baseline_ndvi - ndvi_mean) * 3.0
-            veg_anomaly = min(1.0, veg_anomaly)
+        # Calculate vegetation anomaly score
+        if self.is_custom:
+            # Mathematical definition: (detected_anomaly_mask_pixels / total_image_pixels)
+            # Sentinel-2 images are 512x512
+            total_image_pixels = 512.0 * 512.0
+            veg_anomaly = float(veg_anomaly_area / total_image_pixels)
+            veg_anomaly = min(1.0, max(0.0, veg_anomaly))
+        else:
+            # COCO NDWI fallback calculation for backward compatibility
+            veg_anomaly = 0.0
+            if ndwi_array is not None and len(ndwi_array) > 0:
+                valid = ndwi_array[~np.isnan(ndwi_array)]
+                if len(valid) > 0:
+                    water_positive_frac = float(np.mean(valid > 0.0))
+                    if self.baseline_ndwi is None:
+                        self.baseline_ndwi = water_positive_frac
+                        veg_anomaly = 0.0
+                    else:
+                        veg_anomaly = max(0.0, water_positive_frac - self.baseline_ndwi)
+                        veg_anomaly = min(1.0, veg_anomaly * 10.0)   # scale to [0,1]
+            elif ndvi_mean is not None:
+                baseline_ndvi = 0.30
+                veg_anomaly = max(0.0, baseline_ndvi - ndvi_mean) * 3.0
+                veg_anomaly = min(1.0, veg_anomaly)
 
         return {
             "stagnant_water_count":    water_count,
@@ -312,6 +352,24 @@ class YOLOInference:
         print(f"[YOLO] Shape: {df.shape}")
         print("="*60)
         print(df.to_string(index=False))
+
+        # Trigger sequence rebuild with new YOLO features
+        try:
+            import sys
+            sys.path.insert(0, str(ROOT / "src"))
+            from nasa_power_parser import run as run_parser, WEATHER_DIR
+            
+            candidates = list(WEATHER_DIR.glob("*.csv"))
+            candidates = [c for c in candidates if c.name not in ["weather_features.csv", "label_alignment.csv"]]
+            if candidates:
+                print("\n[YOLO] Triggering nasa_power_parser to update weather features and sequences...")
+                run_parser(candidates[0])
+                print("[YOLO] Sequences and weather features updated successfully.")
+            else:
+                print("\n[YOLO] Warning: could not locate raw weather CSV in weather_cache to rebuild sequences.")
+        except Exception as e:
+            print(f"\n[YOLO] Error triggering nasa_power_parser: {e}")
+
         return df
 
 

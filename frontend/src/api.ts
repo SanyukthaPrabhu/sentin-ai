@@ -79,6 +79,8 @@ export interface PipelineResult {
   yolo: Partial<ManualYolo>;
   location_name: string;
   live_meta?: LiveMeta;
+  rgb_b64?: string | null;    // per-location image, only on live runs
+  ndwi_b64?: string | null;   // per-location NDWI,  only on live runs
 }
 
 export interface ImageryData {
@@ -142,5 +144,5 @@ export const api = {
 
   imagery: () => get<ImageryData>('/api/imagery/latest'),
 
-  history: () => get<{ data: HistoryPoint[] }>('/api/history'),
+  history: () => get<{ data: HistoryPoint[]; is_proxy: boolean }>('/api/history'),
 };

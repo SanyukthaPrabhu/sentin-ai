@@ -62,7 +62,7 @@ function RangeSlider({ label, value, min, max, step, unit, onChange }: {
     <div style={{ marginBottom: '0.85rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
         <span className="sidebar-label" style={{ marginBottom: 0 }}>{label}</span>
-        <span style={{ fontFamily: 'DM Mono', fontSize: '0.75rem', color: '#00e5ff' }}>
+        <span style={{ fontFamily: 'DM Mono', fontSize: '0.75rem', color: 'var(--cyan)' }}>
           {value}{unit}
         </span>
       </div>
@@ -104,14 +104,7 @@ export default function Sidebar({
   };
 
   return (
-    <nav className="sidebar">
-      {/* Logo */}
-      <div className="sidebar-logo">
-        <span style={{ fontSize: '1.4rem' }}>🛰️</span>
-        Sentin-AI
-      </div>
-
-      <div className="divider" />
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
 
       {/* Location */}
       <div style={{ marginBottom: '1.25rem' }}>
@@ -206,15 +199,14 @@ export default function Sidebar({
             <button
               onClick={() => onYoloToggle(!yoloEnabled)}
               style={{
-                width: 40, height: 22, borderRadius: 11, border: 'none',
+                width: 36, height: 20, borderRadius: 10, border: 'none',
                 background: yoloEnabled ? 'var(--cyan)' : 'rgba(255,255,255,0.1)',
                 position: 'relative', cursor: 'pointer', transition: 'background 0.2s',
-                boxShadow: yoloEnabled ? '0 0 8px rgba(0,229,255,0.5)' : 'none',
               }}
             >
               <span style={{
-                position: 'absolute', top: 3,
-                left: yoloEnabled ? 21 : 3,
+                position: 'absolute', top: 2,
+                left: yoloEnabled ? 18 : 2,
                 width: 16, height: 16, borderRadius: '50%',
                 background: '#fff', transition: 'left 0.2s',
               }} />
@@ -249,12 +241,12 @@ export default function Sidebar({
           >
             {loading ? '⏳ Running…' : mode === 'live' ? '⚡ Execute Live Pipeline' : '▶ Run Analysis'}
           </button>
-          <div style={{ fontFamily: 'DM Mono', fontSize: '0.65rem', color: '#6b7a99',
+          <div style={{ fontFamily: 'DM Mono', fontSize: '0.65rem', color: 'var(--text-muted)',
             textAlign: 'center', marginTop: '0.5rem' }}>
             {location.location_name}
           </div>
         </>
       )}
-    </nav>
+    </div>
   );
 }

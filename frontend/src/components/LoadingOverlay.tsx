@@ -24,9 +24,9 @@ export default function LoadingOverlay({ step, visible }: Props) {
       <div style={{ position: 'relative', width: 100, height: 100,
         display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {/* Globe rings */}
-        <div style={{ position: 'absolute', width: 70, height: 70, border: '1px solid rgba(0,229,255,0.15)',
+        <div style={{ position: 'absolute', width: 70, height: 70, border: '1px solid rgba(var(--cyan-rgb), 0.15)',
           borderRadius: '50%' }} />
-        <div style={{ position: 'absolute', width: 50, height: 50, border: '1px solid rgba(0,229,255,0.1)',
+        <div style={{ position: 'absolute', width: 50, height: 50, border: '1px solid rgba(var(--cyan-rgb), 0.1)',
           borderRadius: '50%' }} />
         {/* Globe icon */}
         <div style={{ fontSize: '2rem', zIndex: 1 }}>🌏</div>
@@ -41,7 +41,7 @@ export default function LoadingOverlay({ step, visible }: Props) {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -6 }}
         transition={{ duration: 0.4 }}
-        style={{ fontFamily: 'DM Mono', fontSize: '0.85rem', color: '#00e5ff' }}
+        style={{ fontFamily: 'DM Sans', fontSize: '0.85rem', fontWeight: 600, color: 'var(--cyan)' }}
       >
         {label}
       </motion.div>
@@ -57,7 +57,7 @@ export default function LoadingOverlay({ step, visible }: Props) {
       </div>
 
       {/* Sub-text */}
-      <div style={{ fontFamily: 'DM Mono', fontSize: '0.72rem', color: '#6b7a99' }}>
+      <div style={{ fontFamily: 'DM Mono', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
         Sentin-AI · Real-time pipeline
       </div>
     </div>

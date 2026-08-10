@@ -10,7 +10,7 @@ interface Props {
   numeric?: boolean; // if true, count-up animation
 }
 
-export default function MetricCard({ title, value, sub, color = '#00e5ff', delay = 0, numeric = false }: Props) {
+export default function MetricCard({ title, value, sub, color = 'var(--cyan)', delay = 0, numeric = false }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const animRef = useRef<number>(0);
 

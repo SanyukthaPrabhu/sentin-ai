@@ -165,10 +165,33 @@ def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
     RH  = df["relative_humidity_pct"]
     df["heat_humidity_index"] = T + 0.33 * (RH / 100) * 6.105 * np.exp(17.27 * T / (237.7 + T)) - 4.0
 
-    # YOLO visual feature placeholders (filled with 0 until Phase 4)
-    for col in ["stagnant_water_count", "stagnant_water_area_px",
-                "garbage_count", "vegetation_anomaly_score"]:
-        df[col] = 0.0
+    # Merge YOLO visual features if yolo_features.csv is available
+    yolo_csv = ROOT / "data" / "raw_imagery" / "yolo_features.csv"
+    if yolo_csv.exists():
+        print(f"    [YOLO] Found yolo_features.csv. Merging visual features...")
+        try:
+            yolo_df = pd.read_csv(yolo_csv)
+            yolo_df["date"] = pd.to_datetime(yolo_df["date"])
+            yolo_df = yolo_df.set_index("date").sort_index()
+            
+            # Reindex to match the daily weather index, forward/backward filling nearest date
+            yolo_df_aligned = yolo_df.reindex(df.index, method="nearest", limit=15)
+            yolo_df_aligned = yolo_df_aligned.fillna(0.0)
+            
+            for col in ["stagnant_water_count", "stagnant_water_area_px",
+                        "garbage_count", "vegetation_anomaly_score"]:
+                df[col] = yolo_df_aligned[col]
+            print(f"    [YOLO] Merged visual features from {len(yolo_df)} image dates.")
+        except Exception as e:
+            print(f"    [YOLO] Error merging visual features: {e}. Using zero-filled placeholders.")
+            for col in ["stagnant_water_count", "stagnant_water_area_px",
+                        "garbage_count", "vegetation_anomaly_score"]:
+                df[col] = 0.0
+    else:
+        print("    [YOLO] yolo_features.csv not found — using zero-filled placeholders.")
+        for col in ["stagnant_water_count", "stagnant_water_area_px",
+                    "garbage_count", "vegetation_anomaly_score"]:
+            df[col] = 0.0
 
     # Zero-fill any other LSTM feature columns missing from this CSV export
     # (e.g. T2MDEW / WS10M / ALLSKY_KT not included in a 5-column download)
@@ -255,7 +278,7 @@ if __name__ == "__main__":
     else:
         # Auto-detect: pick first CSV in weather_cache/
         candidates = list(WEATHER_DIR.glob("*.csv"))
-        candidates = [c for c in candidates if c.name != "weather_features.csv"]
+        candidates = [c for c in candidates if c.name not in ["weather_features.csv", "label_alignment.csv"]]
         if not candidates:
             raise FileNotFoundError(
                 f"No CSV found in {WEATHER_DIR}. "

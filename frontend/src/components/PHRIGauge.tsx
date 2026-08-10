@@ -7,14 +7,14 @@ interface Props {
 }
 
 const RISK_COLORS: Record<string, string> = {
-  LOW: '#00e676', MEDIUM: '#ffb300', HIGH: '#ff6400', CRITICAL: '#ff4c4c',
+  LOW: '#10b981', MEDIUM: '#f59e0b', HIGH: '#f97316', CRITICAL: '#ef4444',
 };
 
 function phriColor(s: number): string {
-  if (s < 0.40) return '#00e676';
-  if (s < 0.60) return '#ffb300';
-  if (s < 0.75) return '#ff6400';
-  return '#ff4c4c';
+  if (s < 0.40) return '#10b981';
+  if (s < 0.60) return '#f59e0b';
+  if (s < 0.75) return '#f97316';
+  return '#ef4444';
 }
 
 // SVG arc helper
@@ -60,10 +60,10 @@ export default function PHRIGauge({ score, riskLevel }: Props) {
 
   // Gradient arc segments
   const segments = [
-    { from: 220, to: 332, color: 'rgba(0,230,118,0.2)' },   // LOW
-    { from: 332, to: 388, color: 'rgba(255,179,0,0.2)' },   // MEDIUM
-    { from: 388, to: 430, color: 'rgba(255,100,0,0.2)' },   // HIGH
-    { from: 430, to: 500, color: 'rgba(255,76,76,0.22)' },  // CRITICAL
+    { from: 220, to: 332, color: 'rgba(16, 185, 129, 0.12)' },  // LOW
+    { from: 332, to: 388, color: 'rgba(245, 158, 11, 0.12)' },  // MEDIUM
+    { from: 388, to: 430, color: 'rgba(249, 115, 22, 0.12)' },  // HIGH
+    { from: 430, to: 500, color: 'rgba(239, 68, 68, 0.12)' },   // CRITICAL
   ];
 
   const badgeClass = riskLevel.toLowerCase();
@@ -103,7 +103,6 @@ export default function PHRIGauge({ score, riskLevel }: Props) {
           stroke={color}
           strokeWidth={6}
           strokeLinecap="round"
-          filter="url(#glow)"
           initial={{ pathLength: 0 }}
           animate={{ pathLength: 1 }}
           transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
@@ -116,7 +115,7 @@ export default function PHRIGauge({ score, riskLevel }: Props) {
           const inner = polarToXY(CX, CY, R - 6, d);
           return (
             <line key={i} x1={inner.x} y1={inner.y} x2={outer.x} y2={outer.y}
-              stroke="rgba(255,255,255,0.25)" strokeWidth={1} />
+              stroke="rgba(255,255,255,0.15)" strokeWidth={1} />
           );
         })}
 
@@ -126,7 +125,7 @@ export default function PHRIGauge({ score, riskLevel }: Props) {
           const pos = polarToXY(CX, CY, R + 16, d);
           return (
             <text key={i} x={pos.x} y={pos.y} textAnchor="middle" dominantBaseline="middle"
-              fontSize="8" fill="#6b7a99" fontFamily="DM Mono">{v}</text>
+              fontSize="8.5" fill="var(--text-muted)" fontFamily="DM Mono">{v}</text>
           );
         })}
 
@@ -135,33 +134,24 @@ export default function PHRIGauge({ score, riskLevel }: Props) {
           x1={CX} y1={CY}
           x2={needleXY.x} y2={needleXY.y}
           stroke={color}
-          strokeWidth={2}
+          strokeWidth={2.5}
           strokeLinecap="round"
-          filter="url(#glow)"
           initial={{ rotate: START_DEG - 90, originX: CX, originY: CY }}
           animate={{ rotate: needleDeg - 90 }}
           transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
         />
 
         {/* Centre dot */}
-        <circle cx={CX} cy={CY} r={5} fill={color} filter="url(#glow)" />
+        <circle cx={CX} cy={CY} r={4.5} fill={color} />
 
         {/* Score text */}
         <text x={CX} y={CY - 10} textAnchor="middle" dominantBaseline="middle"
-          fontSize="30" fontWeight="800" fontFamily="Syne" fill={color}>
+          fontSize="28" fontWeight="700" fontFamily="DM Sans" fill="#ffffff">
           {displayed.toFixed(2)}
         </text>
-        <text x={CX} y={CY + 22} textAnchor="middle" fontSize="9" fill="#6b7a99" fontFamily="DM Mono">
+        <text x={CX} y={CY + 22} textAnchor="middle" fontSize="9.5" fill="var(--text-muted)" fontFamily="DM Mono">
           / 1.00
         </text>
-
-        {/* Glow filter */}
-        <defs>
-          <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
-            <feGaussianBlur stdDeviation="2" result="blur" />
-            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-          </filter>
-        </defs>
       </svg>
 
       <motion.div

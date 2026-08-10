@@ -16,13 +16,14 @@ ROOT = Path(__file__).resolve().parent
 
 def main():
     print("=" * 60)
-    print("🛰️  Sentin-AI: Launching React Dashboard & REST API")
+    print("[*] Sentin-AI: Launching React Dashboard & REST API")
     print("=" * 60)
 
     # 1. Start FastAPI Backend
-    print("📡 Starting FastAPI backend on http://127.0.0.1:8000...")
+    print("[API] Starting FastAPI backend on http://127.0.0.1:8000...")
     backend_proc = subprocess.Popen(
-        [sys.executable, "-m", "uvicorn", "backend.api:app", "--host", "127.0.0.1", "--port", "8000"],
+        [sys.executable, "-m", "uvicorn", "backend.api:app",
+         "--host", "127.0.0.1", "--port", "8000", "--reload"],
         cwd=str(ROOT),
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
@@ -35,15 +36,15 @@ def main():
 
     # Check if backend failed immediately
     if backend_proc.poll() is not None:
-        print("❌ FastAPI backend failed to start. Logs:")
+        print("[ERR] FastAPI backend failed to start. Logs:")
         out, _ = backend_proc.communicate()
         print(out)
         sys.exit(1)
     else:
-        print("✅ FastAPI backend is running.")
+        print("[OK] FastAPI backend is running.")
 
     # 2. Start React Dev Server
-    print("🎨 Starting Vite React dev server on http://localhost:5173...")
+    print("[UI] Starting Vite React dev server on http://localhost:5173...")
     frontend_proc = subprocess.Popen(
         ["npm.cmd", "run", "dev"],
         cwd=str(ROOT / "frontend"),
@@ -57,16 +58,16 @@ def main():
     time.sleep(1.5)
 
     if frontend_proc.poll() is not None:
-        print("❌ Vite React frontend failed to start. Logs:")
+        print("[ERR] Vite React frontend failed to start. Logs:")
         out, _ = frontend_proc.communicate()
         print(out)
         backend_proc.terminate()
         sys.exit(1)
     else:
-        print("✅ Vite React frontend is running.")
+        print("[OK] Vite React frontend is running.")
 
-    print("\n🚀 Dashboard online! Open http://localhost:5173 in your browser.")
-    print("👉 Press Ctrl+C to terminate both servers safely.\n")
+    print("\n[GO] Dashboard online! Open http://localhost:5173 in your browser.")
+    print("     Press Ctrl+C to terminate both servers safely.\n")
 
     try:
         # Stream logs in real-time
@@ -86,12 +87,12 @@ def main():
             time.sleep(1)
 
     except KeyboardInterrupt:
-        print("\n\n🛰️ Terminating Sentin-AI servers...")
+        print("\n\n[*] Terminating Sentin-AI servers...")
         backend_proc.terminate()
         frontend_proc.terminate()
         backend_proc.wait()
         frontend_proc.wait()
-        print("✅ Servers shut down successfully. Goodbye!")
+        print("[OK] Servers shut down successfully. Goodbye!")
 
 if __name__ == "__main__":
     main()

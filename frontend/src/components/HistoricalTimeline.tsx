@@ -5,24 +5,24 @@ import {
 import { motion } from 'framer-motion';
 import type { HistoryPoint } from '../api';
 
-interface Props { data: HistoryPoint[] }
+interface Props { data: HistoryPoint[]; isProxy?: boolean; }
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload as HistoryPoint;
   return (
-    <div style={{ background: 'rgba(17,24,39,0.95)', border: '1px solid #1e2a3d',
-      borderRadius: 8, padding: '0.6rem 0.9rem', fontFamily: 'DM Mono', fontSize: '0.78rem' }}>
-      <div style={{ color: '#6b7a99', marginBottom: 4 }}>{d.date}</div>
-      <div style={{ color: '#00e5ff' }}>PHRI: {d.phri.toFixed(3)}</div>
-      <div style={{ color: '#45b7d1' }}>Temp: {d.temp}°C</div>
-      <div style={{ color: '#96ceb4' }}>Rain: {d.rain} mm</div>
-      <div style={{ color: '#ffeaa7' }}>Humidity: {d.humid}%</div>
+    <div style={{ background: '#0f131f', border: '1px solid var(--border-glow)',
+      borderRadius: 6, padding: '0.6rem 0.9rem', fontFamily: 'DM Sans', fontSize: '0.8rem' }}>
+      <div style={{ color: 'var(--text-muted)', marginBottom: 4 }}>{d.date}</div>
+      <div style={{ color: 'var(--cyan)' }}>PHRI: {d.phri.toFixed(3)}</div>
+      <div style={{ color: 'var(--text-primary)' }}>Temp: {d.temp}°C</div>
+      <div style={{ color: 'var(--text-primary)' }}>Rain: {d.rain} mm</div>
+      <div style={{ color: 'var(--text-primary)' }}>Humidity: {d.humid}%</div>
     </div>
   );
 };
 
-export default function HistoricalTimeline({ data }: Props) {
+export default function HistoricalTimeline({ data, isProxy = true }: Props) {
   if (!data.length) return (
     <div className="empty-state">
       <div className="empty-icon">📊</div>
@@ -49,7 +49,7 @@ export default function HistoricalTimeline({ data }: Props) {
             Historical Risk Timeline
           </div>
           <div style={{ fontFamily: 'Syne', fontSize: '0.9rem', fontWeight: 600, color: '#e8edf5' }}>
-            2023–2024 PHRI Proxy (Weather-based)
+            {isProxy ? '2023–2024 PHRI Proxy (Weather-based)' : '2023–2024 LSTM Model PHRI'}
           </div>
         </div>
         <div style={{ fontFamily: 'DM Mono', fontSize: '0.72rem', color: '#6b7a99' }}>
@@ -72,12 +72,12 @@ export default function HistoricalTimeline({ data }: Props) {
             tickLine={false} axisLine={false} tickFormatter={v => v.toFixed(1)} />
           <Tooltip content={<CustomTooltip />} />
           {/* Alert threshold band */}
-          <ReferenceLine y={0.70} stroke="rgba(255,76,76,0.4)" strokeDasharray="5 3"
-            label={{ value: 'Alert 0.70', fill: '#ff4c4c', fontSize: 9, fontFamily: 'DM Mono', position: 'right' }} />
-          <Line type="monotone" dataKey="phri" stroke="#00e5ff" strokeWidth={1.5}
-            dot={false} activeDot={{ r: 4, fill: '#00e5ff', stroke: '#111827', strokeWidth: 2 }}
+          <ReferenceLine y={0.70} stroke="rgba(239,68,68,0.3)" strokeDasharray="5 3"
+            label={{ value: 'Alert 0.70', fill: 'var(--red)', fontSize: 9, fontFamily: 'DM Mono', position: 'right' }} />
+          <Line type="monotone" dataKey="phri" stroke="var(--cyan)" strokeWidth={1.5}
+            dot={false} activeDot={{ r: 4, fill: 'var(--cyan)', stroke: '#0f131f', strokeWidth: 2 }}
             isAnimationActive animationDuration={1500} animationEasing="ease-out" />
-          <Brush dataKey="date" height={20} stroke="#1e2a3d" fill="rgba(17,24,39,0.8)"
+          <Brush dataKey="date" height={20} stroke="var(--border-glow)" fill="#090c14"
             travellerWidth={6} />
         </LineChart>
       </ResponsiveContainer>

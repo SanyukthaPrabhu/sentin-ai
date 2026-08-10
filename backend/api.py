@@ -35,7 +35,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origin_regex=r"http://(localhost|127\.0\.0\.1)(:\d+)?",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -96,9 +96,19 @@ class StressTestRequest(BaseModel):
 
 
 # ── Shared pipeline runner ────────────────────────────────────────────────────
+def _encode_image(path_str) -> Optional[str]:
+    """Read an image file and return its base64-encoded string, or None."""
+    if path_str and Path(path_str).exists():
+        with open(path_str, "rb") as f:
+            return base64.b64encode(f.read()).decode("utf-8")
+    return None
+
+
 def _run_core_pipeline(phri_result, disease_route, seir_result, bulletin,
                        weather_dict: dict, yolo_dict: dict,
-                       location_name: str, live_meta: Optional[dict] = None) -> dict:
+                       location_name: str, live_meta: Optional[dict] = None,
+                       rgb_b64: Optional[str] = None,
+                       ndwi_b64: Optional[str] = None) -> dict:
     """Serialise pipeline outputs into a JSON-safe dict."""
     from seir_model import DISEASE_PARAMS
 
@@ -144,6 +154,9 @@ def _run_core_pipeline(phri_result, disease_route, seir_result, bulletin,
         "yolo":          yolo_dict,
         "location_name": location_name,
         "live_meta":     live_meta,
+        # Per-location satellite images (only present on live runs)
+        "rgb_b64":       rgb_b64,
+        "ndwi_b64":      ndwi_b64,
     }
 
 
@@ -204,9 +217,15 @@ def pipeline_live(req: LivePipelineRequest):
         weather       = res.get("weather", {})
         yolo          = res.get("yolo", {})
 
+        # Encode the per-location satellite images that were freshly downloaded
+        # for THIS location — avoids the stale global /api/imagery/latest lookup
+        rgb_b64  = _encode_image(live_meta.get("rgb_path"))
+        ndwi_b64 = _encode_image(live_meta.get("ndwi_png_path"))
+
         return _run_core_pipeline(
             phri_result, disease_route, seir_result, bulletin,
-            weather, yolo, loc.location_name, live_meta
+            weather, yolo, loc.location_name, live_meta,
+            rgb_b64=rgb_b64, ndwi_b64=ndwi_b64
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {e}\n{traceback.format_exc()}")
@@ -303,13 +322,28 @@ def imagery_latest():
 
 @app.get("/api/history")
 def history():
-    """Return historical PHRI proxy timeline from weather_features.csv."""
+    """Return historical PHRI timeline. Loads from backtest_phri_scores.csv if available, else falls back to proxy."""
     try:
         csv = ROOT / "data" / "weather_cache" / "weather_features.csv"
         if not csv.exists():
-            return {"data": []}
+            return {"data": [], "is_proxy": True}
 
         df = pd.read_csv(csv, parse_dates=["date"])
+
+        # Try to load real LSTM backtest scores
+        scores_csv = ROOT / "validation" / "backtest_phri_scores.csv"
+        real_scores = {}
+        is_proxy = True
+        if scores_csv.exists():
+            try:
+                df_scores = pd.read_csv(scores_csv, parse_dates=["seq_end"])
+                for _, row in df_scores.iterrows():
+                    dt = row["seq_end"].date() if hasattr(row["seq_end"], "date") else row["seq_end"]
+                    real_scores[str(dt)] = float(row["phri_score"])
+                if real_scores:
+                    is_proxy = False
+            except Exception as e:
+                print(f"[API] Error loading backtest scores: {e}")
 
         proxy = (
             df["relative_humidity_pct"].clip(0, 100) / 100 * 0.4 +
@@ -319,14 +353,16 @@ def history():
 
         result = []
         for i, row in df.iterrows():
+            dt_str = str(row["date"].date()) if hasattr(row["date"], "date") else str(row["date"])
+            phri_val = real_scores.get(dt_str, float(proxy.iloc[i]))
             result.append({
-                "date":  str(row["date"].date()) if hasattr(row["date"], "date") else str(row["date"]),
-                "phri":  round(float(proxy.iloc[i]), 4),
+                "date":  dt_str,
+                "phri":  round(phri_val, 4),
                 "temp":  round(float(row.get("temperature_2m_c", 0)), 1),
                 "rain":  round(float(row.get("precipitation_imerg_mm", 0)), 1),
                 "humid": round(float(row.get("relative_humidity_pct", 0)), 1),
             })
 
-        return {"data": result}
+        return {"data": result, "is_proxy": is_proxy}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

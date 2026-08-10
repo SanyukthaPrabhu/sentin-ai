@@ -42,7 +42,7 @@ from typing import Optional
 DEFAULT_POPULATION = 275_000   # fallback: 3,500 /km² × π×5² km²
 
 
-def get_population(lat: float, lon: float, radius_km: float) -> int:
+def get_population(lat: float | None, lon: float | None, radius_km: float | None) -> int:
     """
     Estimate population within a circular surveillance area.
 
@@ -60,6 +60,9 @@ def get_population(lat: float, lon: float, radius_km: float) -> int:
         Estimated population (int)
     """
     import math
+    if lat is None: lat = 12.98
+    if lon is None: lon = 77.58
+    if radius_km is None: radius_km = 5.0
     area_km2 = math.pi * radius_km ** 2
 
     # WorldPop REST API: get pixel value at lat/lon for India 2020 dataset
