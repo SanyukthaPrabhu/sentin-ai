@@ -145,20 +145,68 @@ export default function App() {
             <button
               className={`top-nav-link ${view === 'landing' ? 'active' : ''}`}
               onClick={() => setView('landing')}
+              style={{ position: 'relative' }}
             >
-              🏠 Overview
+              <span style={{ position: 'relative', zIndex: 1 }}>🏠 Overview</span>
+              {view === 'landing' && (
+                <motion.div
+                  layoutId="activeNavTabUnderline"
+                  style={{
+                    position: 'absolute',
+                    bottom: -1,
+                    left: 0,
+                    right: 0,
+                    height: 2,
+                    background: 'var(--cyan)',
+                    zIndex: 2
+                  }}
+                  transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                />
+              )}
             </button>
             <button
               className={`top-nav-link ${view === 'surveillance' ? 'active' : ''}`}
               onClick={() => setView('surveillance')}
+              style={{ position: 'relative' }}
             >
-              📡 Surveillance Hub
+              <span style={{ position: 'relative', zIndex: 1 }}>📡 Surveillance Hub</span>
+              {view === 'surveillance' && (
+                <motion.div
+                  layoutId="activeNavTabUnderline"
+                  style={{
+                    position: 'absolute',
+                    bottom: -1,
+                    left: 0,
+                    right: 0,
+                    height: 2,
+                    background: 'var(--cyan)',
+                    zIndex: 2
+                  }}
+                  transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                />
+              )}
             </button>
             <button
               className={`top-nav-link ${view === 'stress' ? 'active' : ''}`}
               onClick={() => setView('stress')}
+              style={{ position: 'relative' }}
             >
-              🧪 Stress Simulation
+              <span style={{ position: 'relative', zIndex: 1 }}>🧪 Stress Simulation</span>
+              {view === 'stress' && (
+                <motion.div
+                  layoutId="activeNavTabUnderline"
+                  style={{
+                    position: 'absolute',
+                    bottom: -1,
+                    left: 0,
+                    right: 0,
+                    height: 2,
+                    background: 'var(--cyan)',
+                    zIndex: 2
+                  }}
+                  transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                />
+              )}
             </button>
           </div>
 

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import type { LocationConfig, ManualWeather, ManualYolo } from '../api';
+import CustomDropdown from './CustomDropdown';
 
 const CITIES: LocationConfig[] = [
   { lat: 12.98, lon: 77.58, radius_km: 5, location_name: 'Bengaluru, Karnataka' },
@@ -107,18 +108,15 @@ export default function Sidebar({
 
       {/* Location */}
       <div style={{ marginBottom: '1.25rem' }}>
-        <span className="sidebar-label">📍 Surveillance Location</span>
-        <select
-          className="sidebar-input"
-          value={cityIdx}
-          onChange={e => handleCityChange(parseInt(e.target.value))}
-          style={{ marginBottom: '0.6rem' }}
-        >
-          {CITIES.map((c, i) => (
-            <option key={i} value={i}>{c.location_name}</option>
-          ))}
-          <option value={-1}>Custom…</option>
-        </select>
+        <CustomDropdown
+          label="📍 Surveillance Location"
+          options={[
+            ...CITIES.map((c, i) => ({ value: String(i), label: c.location_name })),
+            { value: '-1', label: 'Custom…' }
+          ]}
+          value={String(cityIdx)}
+          onChange={val => handleCityChange(parseInt(val))}
+        />
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem', marginBottom: '0.4rem' }}>
           <div>
@@ -149,14 +147,44 @@ export default function Sidebar({
       {/* Mode tabs */}
       <div style={{ marginBottom: '1.25rem' }}>
         <span className="sidebar-label">⚙️ Analysis Mode</span>
-        <div className="mode-tabs">
+        <div className="mode-tabs" style={{ display: 'flex', gap: '2px', background: 'var(--bg-void)', padding: '2px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-glow)' }}>
           {MODES.map(m => (
             <button
               key={m.id}
               className={`mode-tab ${mode === m.id ? 'active' : ''}`}
               onClick={() => onModeChange(m.id)}
+              style={{
+                position: 'relative',
+                flex: 1,
+                padding: '0.45rem 0.3rem',
+                fontSize: '0.78rem',
+                border: 'none',
+                background: 'transparent',
+                cursor: 'pointer',
+                outline: 'none',
+                borderRadius: 'calc(var(--radius-sm) - 2px)',
+                transition: 'color 0.15s'
+              }}
             >
-              {m.icon} {m.label}
+              {mode === m.id && (
+                <motion.div
+                  layoutId="activeModeIndicator"
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-glow)',
+                    borderRadius: 'calc(var(--radius-sm) - 2px)',
+                    zIndex: 0,
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.08)'
+                  }}
+                  transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                />
+              )}
+              <span style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}>
+                <span>{m.icon}</span>
+                <span>{m.label}</span>
+              </span>
             </button>
           ))}
         </div>
