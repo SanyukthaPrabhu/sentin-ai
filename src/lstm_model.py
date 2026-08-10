@@ -329,7 +329,7 @@ def evaluate_model(model, X_test, y_test):
     print(classification_report(y_true, preds_05, target_names=["no_outbreak", "outbreak"]))
 
     print(f"\n    [OK] Best model saved -> {MODEL_OUT}")
-    print("\n🎉 lstm_model.py complete -- ready for phri_engine.py")
+    print("\n[DONE] lstm_model.py complete -- ready for phri_engine.py")
 
 
 # ── Main ───────────────────────────────────────────────────────────────

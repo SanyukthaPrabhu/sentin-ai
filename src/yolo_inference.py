@@ -1,4 +1,4 @@
-﻿"""
+"""
 yolo_inference.py
 =================
 Step 10 of the Sentin-AI build order.  Phase 4 — Satellite.
@@ -112,11 +112,24 @@ class YOLOInference:
     4-feature vector required by the PHRI LSTM.
 
     Feature vector (per image / timestep):
-      stagnant_water_count     int   — number of detected water-proxy boxes
-      stagnant_water_area_px   float — total pixel area of water detections
-      garbage_count            int   — number of garbage-proxy detections
-      vegetation_anomaly_score float — vegetation anomaly/stress mask density
+      stagnant_water_count     int   -- number of detected water-proxy instances
+      stagnant_water_area_px   float -- total pixel area of water detections
+      garbage_count            int   -- number of garbage-proxy detections
+      vegetation_anomaly_score float -- vegetation anomaly/stress signal
+
+    When the custom YOLO model returns very low confidence (< NDWI_FALLBACK_CONF),
+    NDWI-physics-based feature extraction is used instead. This is scientifically
+    defensible: NDWI (Normalized Difference Water Index) is the standard index for
+    mapping water bodies from Sentinel-2 imagery in the remote sensing literature.
     """
+
+    # If YOLO max confidence on an image is below this, fall back to NDWI physics
+    NDWI_FALLBACK_CONF = 0.10
+
+    # NDWI thresholds (McFeeters 1996 standard)
+    NDWI_WATER_THRESH     = 0.0    # pixels > 0 are open water
+    NDWI_STAGNANT_THRESH  = 0.2    # pixels > 0.2 are confidently stagnant/pooled
+    NDWI_PIXEL_AREA_SCALE = 100.0  # each NDWI pixel ~ 100 m^2 at 10m resolution
 
     def __init__(self, weights: str = YOLO_WEIGHTS, conf: float = CONF_THRESH):
         self.weights  = weights
@@ -299,6 +312,85 @@ class YOLOInference:
             "vegetation_anomaly_score": round(veg_anomaly, 4),
         }
 
+    def ndwi_physics_features(self,
+                               ndwi_array: np.ndarray,
+                               ndvi_mean: float | None = None) -> dict:
+        """
+        NDWI-physics-based feature extraction.
+
+        Uses the pre-computed NDWI array (NDWI = (Green-NIR)/(Green+NIR))
+        downloaded alongside each Sentinel-2 scene to derive water features
+        without relying on YOLO detections.
+
+        Scientific basis:
+          NDWI > 0.0  => open water / wet surface  (McFeeters 1996)
+          NDWI > 0.2  => confidently stagnant / pooled water
+
+        stagnant_water_count:
+          Number of connected water regions (approx: n pixels > NDWI_STAGNANT_THRESH / 500)
+        stagnant_water_area_px:
+          Total pixel count with NDWI > NDWI_WATER_THRESH (each pixel = 10m x 10m)
+        garbage_count:
+          0 (NDWI cannot detect garbage; placeholder until YOLO is retrained)
+        vegetation_anomaly_score:
+          Fraction of vegetated pixels with anomalously low NDWI vs baseline,
+          or from NDVI departure if ndvi_mean is provided.
+        """
+        if ndwi_array is None or ndwi_array.size == 0:
+            return {
+                "stagnant_water_count":     0,
+                "stagnant_water_area_px":   0.0,
+                "garbage_count":            0,
+                "vegetation_anomaly_score": 0.0,
+                "_source": "ndwi_empty",
+            }
+
+        valid = ndwi_array[~np.isnan(ndwi_array)]
+        if len(valid) == 0:
+            return {
+                "stagnant_water_count":     0,
+                "stagnant_water_area_px":   0.0,
+                "garbage_count":            0,
+                "vegetation_anomaly_score": 0.0,
+                "_source": "ndwi_all_nan",
+            }
+
+        # -- Water area (NDWI > 0) ------------------------------------------
+        water_mask     = valid > self.NDWI_WATER_THRESH
+        water_px_count = int(water_mask.sum())
+        water_area_px  = float(water_px_count)          # raw pixel count
+
+        # Stagnant water count: approximate number of pools
+        # A single monsoon pool is ~500+ pixels at 10m resolution
+        stagnant_mask  = valid > self.NDWI_STAGNANT_THRESH
+        stagnant_px    = int(stagnant_mask.sum())
+        water_count    = max(1, stagnant_px // 500) if stagnant_px > 50 else 0
+
+        # Update baseline for delta calculation
+        water_frac = float(np.mean(water_mask))
+        if self.baseline_ndwi is None:
+            self.baseline_ndwi = water_frac
+
+        # -- Vegetation anomaly (NDVI departure or NDWI proxy) --------------
+        veg_anomaly = 0.0
+        if ndvi_mean is not None:
+            # NDVI below healthy baseline indicates stress
+            baseline_ndvi = 0.35
+            veg_anomaly = max(0.0, baseline_ndvi - float(ndvi_mean)) * 3.0
+            veg_anomaly = min(1.0, veg_anomaly)
+        elif self.baseline_ndwi is not None:
+            # Water fraction delta as proxy for waterlogged vegetation stress
+            delta = max(0.0, water_frac - self.baseline_ndwi)
+            veg_anomaly = min(1.0, delta * 5.0)
+
+        return {
+            "stagnant_water_count":     water_count,
+            "stagnant_water_area_px":   round(water_area_px, 1),
+            "garbage_count":            0,       # NDWI cannot detect garbage
+            "vegetation_anomaly_score": round(veg_anomaly, 4),
+            "_source": "ndwi_physics",
+        }
+
     def run_single_image(self, rgb_path: Path, npy_path: Path | None = None, ndvi_mean: float | None = None) -> dict:
         """Process a single image and return its 4-feature vector."""
         ndwi_arr = None
@@ -345,7 +437,7 @@ class YOLOInference:
             npy_path = IMAGERY_DIR / f"S2_{date_str}_ndwi.npy"
 
             if not rgb_path.exists():
-                print(f"  [{date_str}] RGB not found — skipping")
+                print(f"  [{date_str}] RGB not found -- skipping")
                 records.append({"date": date_str,
                                 "stagnant_water_count": 0,
                                 "stagnant_water_area_px": 0.0,
@@ -358,18 +450,42 @@ class YOLOInference:
             if npy_path.exists():
                 ndwi_array = np.load(npy_path)
 
-            # Run YOLO inference
-            detections = self.run_inference(rgb_path, verbose=verbose)
+            # -- Feature extraction strategy -----------------------------------
+            # 1. Try YOLO custom model first (run at conf=0.001 to get raw scores)
+            # 2. If max confidence < NDWI_FALLBACK_CONF, use NDWI-physics instead
+            # 3. This produces non-zero, scientifically defensible features even
+            #    when the custom model is underfitted.
+            use_ndwi = False
+            features = None
 
-            # Aggregate to 4-feature vector
-            features = self.aggregate_features(detections, ndwi_array, ndvi_mean)
+            if self.is_custom and ndwi_array is not None:
+                # Quick probe at very low conf to check model confidence level
+                probe_results = self.model.predict(
+                    source=str(rgb_path), conf=0.001, verbose=False, save=False
+                )
+                probe_boxes = probe_results[0].boxes
+                max_conf = 0.0
+                if probe_boxes is not None and len(probe_boxes) > 0:
+                    max_conf = float(probe_boxes.conf.max().item())
+
+                if max_conf < self.NDWI_FALLBACK_CONF:
+                    # Custom model underfitted -- fall back to NDWI physics
+                    use_ndwi = True
+                    features = self.ndwi_physics_features(ndwi_array, ndvi_mean)
+
+            if features is None:
+                # Use YOLO at configured threshold
+                detections = self.run_inference(rgb_path, verbose=verbose)
+                features = self.aggregate_features(detections, ndwi_array, ndvi_mean)
+
+            src = features.pop("_source", "yolo")
 
             print(f"  [{date_str}] "
                   f"water={features['stagnant_water_count']} "
                   f"area={features['stagnant_water_area_px']:.0f}px "
                   f"garbage={features['garbage_count']} "
                   f"veg_anomaly={features['vegetation_anomaly_score']:.4f} "
-                  f"| {len(detections)} total detections")
+                  f"[{src}]")
 
             records.append({"date": date_str, **features})
 
@@ -381,19 +497,28 @@ class YOLOInference:
         print(df.to_string(index=False))
 
         # Trigger sequence rebuild with new YOLO features
+        # Always prefer nasa_power_full.csv (6-feature) over old 3-feature CSV
         try:
             import sys
             sys.path.insert(0, str(ROOT / "src"))
             from nasa_power_parser import run as run_parser, WEATHER_DIR
-            
-            candidates = list(WEATHER_DIR.glob("*.csv"))
-            candidates = [c for c in candidates if c.name not in ["weather_features.csv", "label_alignment.csv"]]
-            if candidates:
-                print("\n[YOLO] Triggering nasa_power_parser to update weather features and sequences...")
-                run_parser(candidates[0])
+
+            preferred = WEATHER_DIR / "nasa_power_full.csv"
+            if preferred.exists():
+                chosen_csv = preferred
+            else:
+                candidates = [
+                    c for c in WEATHER_DIR.glob("*.csv")
+                    if c.name not in ["weather_features.csv", "label_alignment.csv"]
+                ]
+                chosen_csv = candidates[0] if candidates else None
+
+            if chosen_csv:
+                print(f"\n[YOLO] Triggering nasa_power_parser with {chosen_csv.name} ...")
+                run_parser(chosen_csv)
                 print("[YOLO] Sequences and weather features updated successfully.")
             else:
-                print("\n[YOLO] Warning: could not locate raw weather CSV in weather_cache to rebuild sequences.")
+                print("\n[YOLO] Warning: could not locate raw weather CSV -- sequences not rebuilt.")
         except Exception as e:
             print(f"\n[YOLO] Error triggering nasa_power_parser: {e}")
 
