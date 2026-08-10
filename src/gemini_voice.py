@@ -92,7 +92,12 @@ def _build_prompt(phri_score    : float,
                   disease_label : str,
                   disease_meta  : dict,
                   seir_summary  : dict,
-                  location      : str = "Bengaluru, Karnataka") -> str:
+                  location      : str,
+                  temp          : float,
+                  humid         : float,
+                  precip        : float,
+                  water         : int,
+                  garbage       : int) -> str:
     """
     Build a structured prompt from pipeline outputs.
     Instructs the LLM to respond in JSON so we can parse reliably.
@@ -116,18 +121,31 @@ def _build_prompt(phri_score    : float,
     Prevention      : {disease_meta.get("prevention", "Unknown")}
     Incubation      : {disease_meta.get("incubation_days", "Unknown")}
 
+    === CURRENT WEATHER & SENSOR READINGS ===
+    Temperature     : {temp:.1f}°C
+    Relative Humidity: {humid:.1f}%
+    Rainfall (IMERG): {precip:.1f} mm
+    Stagnant Water Detections (YOLO): {water} count
+    Garbage Accumulations (YOLO): {garbage} count
+
     === 14-DAY SEIR PROJECTION ===
     Projected peak  : {seir_summary.get("peak_cases", 0)} cases on day {seir_summary.get("peak_day", 0)}
     Total projected : {seir_summary.get("total_projected", 0)} cases over 14 days
     Attack rate     : {seir_summary.get("attack_rate_pct", 0):.3f}% of surveillance population
     Daily new cases : [{curve_str}]
 
+    === TAILORING REQUIREMENTS ===
+    1. Highly Specific to Location: Mention {location} and use local/municipal naming where appropriate (e.g., BBMP/Ward health officers for Bengaluru, MCGM/municipal health center for Mumbai, GCC for Chennai, local administration health centers for Leh, NDMC/zonal teams for Delhi, GHMC for Hyderabad, KMC for Kolkata, etc.).
+    2. Highly Specific to Weather: Integrate the current environment readings (e.g. rain, humidity, temperature, stagnant water/garbage detections) to make the advisory and action items highly relevant to the today's conditions.
+    3. Vary the Action Items: Avoid generic boilerplate action items like 'wash hands regularly', 'avoid close contact', 'stay informed', or 'get vaccinated' unless they are highly specific to the primary disease (e.g., vaccination for Cholera, or mosquito nets for Malaria). Instead, make all 5 action items highly specific, practical, under 15 words, and direct to the local population of {location}.
+    4. Headline: Make the headline catchy, localized, and unique to the current risk level.
+
     === OUTPUT FORMAT ===
     Respond ONLY with a valid JSON object — no preamble, no markdown, no backticks.
     Use this exact structure:
 
     {{
-      "headline": "One punchy newspaper headline (max 15 words). Must mention the disease and location.",
+      "headline": "One punchy newspaper headline (max 15 words). Must mention the disease/risk and location.",
       "health_bulletin": "2-3 paragraph public advisory. Paragraph 1: what the risk is. Paragraph 2: what the public should do. Paragraph 3: reassurance + next steps. Plain language, no jargon. Do not use bullet points here.",
       "action_items": [
         "Action item 1 (specific, actionable, under 15 words)",
@@ -205,7 +223,12 @@ def _fallback_bulletin(phri_score   : float,
                        disease_label: str,
                        disease_meta : dict,
                        seir_summary : dict,
-                       location     : str) -> dict:
+                       location     : str,
+                       temp         : float,
+                       humid        : float,
+                       precip       : float,
+                       water        : int,
+                       garbage      : int) -> dict:
     """
     Template-based bulletin when Groq is unavailable.
     Ensures the dashboard always has something to display.
@@ -216,6 +239,69 @@ def _fallback_bulletin(phri_score   : float,
     prev   = disease_meta.get("prevention", "Maintain hygiene practices.")
     warn   = disease_meta.get("warning_signs", "Fever and fatigue.")
     vector = disease_meta.get("vector", "environmental conditions")
+
+    # Local authority name
+    loc_lower = location.lower()
+    if "bengaluru" in loc_lower or "bangalore" in loc_lower:
+        authority = "BBMP and ward health units"
+    elif "mumbai" in loc_lower:
+        authority = "MCGM municipal health authorities"
+    elif "chennai" in loc_lower:
+        authority = "GCC zone health officers"
+    elif "delhi" in loc_lower:
+        authority = "NDMC and municipal health teams"
+    elif "hyderabad" in loc_lower:
+        authority = "GHMC zonal health division"
+    elif "kolkata" in loc_lower:
+        authority = "KMC civic health department"
+    elif "leh" in loc_lower:
+        authority = "LAHDC district health services"
+    else:
+        authority = "local municipal health administration"
+
+    # Action items depending on disease type and weather
+    lbl_lower = disease_label.lower()
+    if "dengue" in lbl_lower or "malaria" in lbl_lower:
+        actions = [
+            f"Drain all waterlogged flowerpots, coolers, and containers in {location}",
+            "Apply mosquito repellents containing DEET or picaridin when outdoors",
+            "Report large stagnant pools of water to the local municipal council",
+            "Install insect mesh screens on windows and sleep under insecticide nets",
+            f"Notify {authority} regarding breeding spots in your neighborhood"
+        ]
+    elif "lepto" in lbl_lower or "cholera" in lbl_lower:
+        actions = [
+            f"Avoid wading or walking barefoot through floodwater in {location}",
+            "Boil all drinking water for at least one minute before consumption",
+            "Wash all fruits and vegetables thoroughly with clean, filtered water",
+            "Keep garbage bins sealed tightly to prevent rodent infestation",
+            f"Alert {authority} of clogged stormwater drains in your block"
+        ]
+    elif "respiratory" in lbl_lower or "airborne" in lbl_lower:
+        actions = [
+            f"Wear an N95 mask when outdoors in dusty areas of {location}",
+            "Limit intense outdoor exercise during periods of high air particulate",
+            "Keep windows closed during early morning dry, windy hours",
+            "Use indoor air purifiers or humidifiers if dry cough persists",
+            f"Consult the local {authority} air advisory bulletin daily"
+        ]
+    else:
+        # Fallback/General/None disease risk
+        actions = [
+            f"Monitor the {location} local weather bulletin for sudden rainfall spikes",
+            "Ensure food is kept covered and store water in clean, closed vessels",
+            f"Maintain general home sanitation and clean local drains before rain",
+            "Stay hydrated and avoid eating street food during high humidity periods",
+            f"Report any fever clusters to the nearest {authority} clinic"
+        ]
+
+    # Vary based on actual weather readings in the fallback list as well
+    if precip > 5.0 and len(actions) > 2:
+        actions[2] = f"Clear rain-clogged gutters around your building immediately"
+    if garbage > 0 and len(actions) > 3:
+        actions[3] = f"Dispose of accumulated waste bags to avoid rodent breeding"
+    if water > 0 and len(actions) > 0:
+        actions[0] = f"Clear the {water} detected stagnant pools on your property"
 
     return {
         "headline": (
@@ -235,13 +321,7 @@ def _fallback_bulletin(phri_score   : float,
             f"new cases per day. District health teams have been notified and are monitoring "
             f"the situation. Updated advisories will be issued daily."
         ),
-        "action_items": [
-            "Eliminate all stagnant water sources within and around your home",
-            f"Seek medical attention immediately if you develop {warn.lower()[:60]}",
-            "Boil drinking water and maintain strict hand hygiene during this period",
-            "Avoid areas with visible garbage accumulation or waterlogging",
-            "Report unusual illness clusters to your local BBMP/Municipal health ward",
-        ],
+        "action_items": actions,
         "officer_note": (
             f"PHRI={phri_score:.3f} (alert threshold: 0.70). "
             f"SEIR projects {total} cases over 14 days "
@@ -279,8 +359,31 @@ class GeminiVoice:
         disease_meta  = disease_route.meta
         seir_summary  = seir_result.summary_dict()
 
+        # Extract latest live weather readings
+        temp = 25.0
+        humid = 70.0
+        precip = 0.0
+        water = 0
+        garbage = 0
+
+        if hasattr(phri_result, "raw_features") and phri_result.raw_features is not None:
+            feats = phri_result.raw_features
+            if len(feats.shape) == 2 and feats.shape[0] > 0 and feats.shape[1] >= 10:
+                temp = float(feats[-1, 0])
+                humid = float(feats[-1, 1])
+                precip = float(feats[-1, 2])
+                water = int(feats[-1, 6])
+                garbage = int(feats[-1, 8])
+            elif len(feats.shape) == 1 and len(feats) >= 10:
+                temp = float(feats[0])
+                humid = float(feats[1])
+                precip = float(feats[2])
+                water = int(feats[6])
+                garbage = int(feats[8])
+
         prompt   = _build_prompt(phri_score, risk_level, disease_label,
-                                 disease_meta, seir_summary, location)
+                                 disease_meta, seir_summary, location,
+                                 temp, humid, precip, water, garbage)
         raw      = ""
         parsed   = {}
         fallback = False
@@ -303,7 +406,8 @@ class GeminiVoice:
 
         if fallback or not parsed:
             parsed   = _fallback_bulletin(phri_score, risk_level, disease_label,
-                                          disease_meta, seir_summary, location)
+                                          disease_meta, seir_summary, location,
+                                          temp, humid, precip, water, garbage)
             fallback = True
 
         return BulletinResult(
