@@ -426,10 +426,58 @@ h1, h2, h3 {
   border-radius: 4px;
   text-transform: uppercase;
 }
-.badge-low      { background: rgba(16, 185, 129, 0.1); color: var(--green); border: 1px solid rgba(16, 185, 129, 0.2); }
-.badge-medium   { background: rgba(217, 119, 6, 0.1); color: var(--amber); border: 1px solid rgba(217, 119, 6, 0.2); }
-.badge-high     { background: rgba(249, 115, 22, 0.1); color: #f97316; border: 1px solid rgba(249, 115, 22, 0.2); }
-.badge-critical { background: rgba(239, 68, 68, 0.1); color: var(--red); border: 1px solid rgba(239, 68, 68, 0.2); }
+.badge-low      { 
+  background: rgba(16, 185, 129, 0.08); 
+  color: var(--green); 
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  animation: lowGlow 3s ease-in-out infinite;
+}
+.badge-medium   { 
+  background: rgba(245, 158, 11, 0.08); 
+  color: var(--amber); 
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  animation: mediumGlow 3s ease-in-out infinite;
+}
+.badge-high     { 
+  background: rgba(249, 115, 22, 0.08); 
+  color: #f97316; 
+  border: 1px solid rgba(249, 115, 22, 0.2);
+  animation: highGlow 3s ease-in-out infinite;
+}
+.badge-critical { 
+  background: rgba(239, 68, 68, 0.08); 
+  color: var(--red); 
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  animation: criticalGlow 3s ease-in-out infinite;
+}
+
+@keyframes lowGlow {
+  0%, 100% { box-shadow: 0 0 2px rgba(16, 185, 129, 0.06); }
+  50% { box-shadow: 0 0 8px rgba(16, 185, 129, 0.25); }
+}
+@keyframes mediumGlow {
+  0%, 100% { box-shadow: 0 0 2px rgba(245, 158, 11, 0.06); }
+  50% { box-shadow: 0 0 8px rgba(245, 158, 11, 0.25); }
+}
+@keyframes highGlow {
+  0%, 100% { box-shadow: 0 0 2px rgba(249, 115, 22, 0.06); }
+  50% { box-shadow: 0 0 8px rgba(249, 115, 22, 0.25); }
+}
+@keyframes criticalGlow {
+  0%, 100% { box-shadow: 0 0 2px rgba(239, 68, 68, 0.06); }
+  50% { box-shadow: 0 0 8px rgba(239, 68, 68, 0.25); }
+}
+
+/* Loading Shimmer Box */
+@keyframes shimmerPulse {
+  0%, 100% { background-color: var(--bg-void); }
+  50% { background-color: var(--border-glow); }
+}
+.loading-shimmer-box {
+  animation: shimmerPulse 2s ease-in-out infinite;
+  border: 1px dashed var(--border-glow);
+}
+
 
 /* ── Range Slider ────────────────────────────────────────────────────────── */
 input[type=range] {
