@@ -86,8 +86,22 @@ export default function Sidebar({
   const [customLon, setCustomLon] = useState(String(location.lon));
   const [customName, setCustomName] = useState(location.location_name);
 
+  useEffect(() => {
+    setCustomLat(String(location.lat));
+    setCustomLon(String(location.lon));
+    setCustomName(location.location_name);
+
+    const idx = CITIES.findIndex(
+      c => Math.abs(c.lat - location.lat) < 0.001 && Math.abs(c.lon - location.lon) < 0.001
+    );
+    setCityIdx(idx);
+  }, [location.lat, location.lon, location.location_name]);
+
   const handleCityChange = (idx: number) => {
-    if (idx === -1) return; // custom
+    if (idx === -1) {
+      setCityIdx(-1);
+      return;
+    }
     setCityIdx(idx);
     onLocationChange(CITIES[idx]);
     setCustomLat(String(CITIES[idx].lat));

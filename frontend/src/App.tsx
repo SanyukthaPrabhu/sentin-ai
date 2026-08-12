@@ -72,11 +72,19 @@ export default function App() {
   useEffect(() => {
     api.health().then(() => setBackendOk(true)).catch(() => setBackendOk(false));
     api.imagery().then(setImagery).catch(() => {});
-    api.history().then(r => {
-      setHistory(r.data);
-      setIsProxy(r.is_proxy ?? true);
-    }).catch(() => {});
   }, []);
+
+  // Fetch historical timeline when coordinates or backendOk changes
+  useEffect(() => {
+    if (backendOk) {
+      api.history(location.lat, location.lon)
+        .then(r => {
+          setHistory(r.data);
+          setIsProxy(r.is_proxy ?? true);
+        })
+        .catch(() => {});
+    }
+  }, [location.lat, location.lon, backendOk]);
 
   // Run pipeline
   const handleRun = async () => {

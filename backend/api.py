@@ -178,7 +178,7 @@ def pipeline_manual(req: ManualPipelineRequest):
         yolo    = req.yolo.model_dump()
         loc     = req.location
 
-        phri_result   = engine.score_realtime(weather, yolo)
+        phri_result   = engine.score_realtime(weather, yolo, lat=loc.lat, lon=loc.lon, is_manual=True)
         disease_route = router.classify(phri_result, weather, yolo)
         seir_result   = SEIRModel(
             disease_route.primary_bucket,
@@ -241,9 +241,27 @@ def pipeline_historical(req: HistoricalRequest):
         loc = req.location
 
         hist_dt = datetime.strptime(req.hist_date, "%Y-%m-%d").date()
-        phri_result   = engine.score_historical(hist_dt)
-        weather       = {}
-        yolo          = {}
+        phri_result   = engine.score_historical(hist_dt, lat=loc.lat, lon=loc.lon)
+
+        # Extract actual weather and YOLO values for the target date from raw_features
+        raw_vals = phri_result.raw_features[-1]
+
+        weather = {
+            "temperature_2m_c":            float(raw_vals[0]),
+            "relative_humidity_pct":       float(raw_vals[1]),
+            "precipitation_imerg_mm":      float(raw_vals[2]),
+            "dew_frost_point_c":           float(raw_vals[3]),
+            "wind_speed_10m_ms":            float(raw_vals[4]),
+            "all_sky_insolation_clearness": float(raw_vals[5]),
+        }
+
+        yolo = {
+            "stagnant_water_count":     int(raw_vals[6]),
+            "stagnant_water_area_px":   float(raw_vals[7]),
+            "garbage_count":            int(raw_vals[8]),
+            "vegetation_anomaly_score": float(raw_vals[9]),
+        }
+
         disease_route = router.classify(phri_result, weather, yolo)
         seir_result   = SEIRModel(
             disease_route.primary_bucket,
@@ -321,29 +339,69 @@ def imagery_latest():
 
 
 @app.get("/api/history")
-def history():
-    """Return historical PHRI timeline. Loads from backtest_phri_scores.csv if available, else falls back to proxy."""
+def history(lat: Optional[float] = None, lon: Optional[float] = None):
+    """Return historical PHRI timeline. Loads from location-specific weather features if coordinates provided, with on-the-fly LSTM inference."""
     try:
-        csv = ROOT / "data" / "weather_cache" / "weather_features.csv"
+        if lat is not None and lon is not None:
+            from phri_engine import prepare_location_weather
+            csv = prepare_location_weather(lat, lon)
+        else:
+            csv = ROOT / "data" / "weather_cache" / "weather_features.csv"
+
         if not csv.exists():
             return {"data": [], "is_proxy": True}
 
         df = pd.read_csv(csv, parse_dates=["date"])
 
-        # Try to load real LSTM backtest scores
-        scores_csv = ROOT / "validation" / "backtest_phri_scores.csv"
-        real_scores = {}
+        # Try to run LSTM predictions on the fly for any location
         is_proxy = True
-        if scores_csv.exists():
-            try:
-                df_scores = pd.read_csv(scores_csv, parse_dates=["seq_end"])
-                for _, row in df_scores.iterrows():
-                    dt = row["seq_end"].date() if hasattr(row["seq_end"], "date") else row["seq_end"]
-                    real_scores[str(dt)] = float(row["phri_score"])
-                if real_scores:
+        real_scores = {}
+        
+        try:
+            engine, _, _ = get_modules()
+            from phri_engine import LSTM_FEATURES, WINDOW_SIZE, _normalize_window
+            engine._load_model()
+            if engine._model is not None:
+                # We need at least 30 days of data
+                if len(df) >= WINDOW_SIZE:
+                    feature_matrix = df[LSTM_FEATURES].values.astype(np.float32)
+                    
+                    # Construct all sliding windows
+                    windows = []
+                    dates_list = []
+                    for i in range(len(df) - WINDOW_SIZE + 1):
+                        window = feature_matrix[i : i + WINDOW_SIZE]
+                        window_norm = _normalize_window(window)
+                        windows.append(window_norm)
+                        
+                        # Date of the end of the window
+                        dt_str = str(df.iloc[i + WINDOW_SIZE - 1]["date"].date())
+                        dates_list.append(dt_str)
+                        
+                    X = np.array(windows, dtype=np.float32)  # (N, 30, 10)
+                    scores = engine._model.predict(X, batch_size=128, verbose=0).flatten()
+                    
+                    for dt_str, score in zip(dates_list, scores):
+                        real_scores[dt_str] = float(score)
+                        
                     is_proxy = False
-            except Exception as e:
-                print(f"[API] Error loading backtest scores: {e}")
+                    print(f"[API] Generated {len(real_scores)} actual LSTM scores on the fly for lat={lat}, lon={lon}.")
+        except Exception as e:
+            print(f"[API] Error running on-the-fly LSTM backtest: {e}")
+
+        # Fallback to local files if on-the-fly predictions were not computed
+        if not real_scores:
+            scores_csv = ROOT / "validation" / "backtest_phri_scores.csv"
+            if scores_csv.exists() and (lat is None or (abs(lat - 12.98) < 0.05 and abs(lon - 77.58) < 0.05)):
+                try:
+                    df_scores = pd.read_csv(scores_csv, parse_dates=["seq_end"])
+                    for _, row in df_scores.iterrows():
+                        dt = row["seq_end"].date() if hasattr(row["seq_end"], "date") else row["seq_end"]
+                        real_scores[str(dt)] = float(row["phri_score"])
+                    if real_scores:
+                        is_proxy = False
+                except Exception as e:
+                    print(f"[API] Error loading backtest scores: {e}")
 
         proxy = (
             df["relative_humidity_pct"].clip(0, 100) / 100 * 0.4 +

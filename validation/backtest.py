@@ -62,7 +62,7 @@ def load_inputs():
         raise FileNotFoundError(f"{FEATURES_CSV} not found.")
     df_feat = pd.read_csv(FEATURES_CSV, index_col=0, parse_dates=True)
     dates   = df_feat.index  # daily dates, length = N + WINDOW_SIZE - 1
-    print(f"    Feature dates: {dates[0].date()} → {dates[-1].date()}  ({len(dates)} days)")
+    print(f"    Feature dates: {dates[0].date()} -> {dates[-1].date()}  ({len(dates)} days)")
 
     # IDSP weekly labels
     if not WEEKLY_CSV.exists():
@@ -136,8 +136,8 @@ def save_labels(labels: np.ndarray, df_align: pd.DataFrame):
     print("[3/4] Saving aligned labels ...")
     np.save(LABEL_PATH, labels)
     df_align.to_csv(ALIGN_CSV, index=False)
-    print(f"    ✅ {LABEL_PATH}  (overwritten with real labels)")
-    print(f"    ✅ {ALIGN_CSV}")
+    print(f"    [OK] {LABEL_PATH}  (overwritten with real labels)")
+    print(f"    [OK] {ALIGN_CSV}")
 
 
 def summarise(df_align: pd.DataFrame):
@@ -147,8 +147,8 @@ def summarise(df_align: pd.DataFrame):
         print(f"    First outbreak sequence: {pos_seqs.iloc[0]['seq_start']}")
         print(f"    Last  outbreak sequence: {pos_seqs.iloc[-1]['seq_end']}")
     else:
-        print("    No outbreak sequences found — labels are all zeros.")
-    print(f"\n🎉 backtest.py (Phase A) complete — labels ready for lstm_model.py (Step 4)")
+        print("    No outbreak sequences found - labels are all zeros.")
+    print("\n[OK] backtest.py (Phase A) complete - labels ready for lstm_model.py (Step 4)")
 
 
 def run_phase_a():
@@ -194,7 +194,7 @@ def run_phase_b():
             raise FileNotFoundError(f"{p} not found. Run {step} first.")
 
     print("=" * 60)
-    print("  Sentin-AI  —  Phase B: Full Backtest (Step 12)")
+    print("  Sentin-AI - Phase B: Full Backtest (Step 12)")
     print("=" * 60)
 
     # ── 1. Load data ───────────────────────────────────────────────────────
@@ -207,7 +207,7 @@ def run_phase_b():
     n_pos   = int(labels.sum())
     n_neg   = n_total - n_pos
     print(f"    Sequences : {n_total}  |  Positive (outbreak): {n_pos}  |  Negative: {n_neg}")
-    print(f"    Date range: {df_align['seq_start'].min().date()} → "
+    print(f"    Date range: {df_align['seq_start'].min().date()} -> "
           f"{df_align['seq_end'].max().date()}")
 
     # ── 2. Load model + infer ──────────────────────────────────────────────
@@ -216,7 +216,20 @@ def run_phase_b():
     model.summary(print_fn=lambda x: None)   # suppress verbose summary
 
     print("[3/6] Running PHRI inference on all sequences ...")
-    phri_scores = model.predict(X, batch_size=64, verbose=0).flatten()
+    # Normalize X using feature_scaler.npz
+    SCALER_PATH = ROOT / "models" / "feature_scaler.npz"
+    if SCALER_PATH.exists():
+        scaler = np.load(SCALER_PATH)
+        col_min = scaler["col_min"].astype(np.float32)
+        col_max = scaler["col_max"].astype(np.float32)
+        col_range = np.where((col_max - col_min) == 0, 1.0, col_max - col_min)
+        X_norm = np.clip((X - col_min) / col_range, 0.0, 1.0)
+        print("    [Scaler] Sequences normalized successfully.")
+    else:
+        print("    [Scaler] feature_scaler.npz not found - predicting on raw sequences.")
+        X_norm = X
+
+    phri_scores = model.predict(X_norm, batch_size=64, verbose=0).flatten()
     print(f"    PHRI range : [{phri_scores.min():.4f}, {phri_scores.max():.4f}]")
     print(f"    PHRI mean  : {phri_scores.mean():.4f}")
     print(f"    PHRI median: {np.median(phri_scores):.4f}")
@@ -246,7 +259,7 @@ def run_phase_b():
         r  = tp / (tp + fn) if (tp + fn) > 0 else 0.0
         f1 = 2*p*r / (p+r)  if (p + r)  > 0 else 0.0
 
-        marker = "  ◀ target" if thresh == PHRI_THRESHOLD else ""
+        marker = "  <- target" if thresh == PHRI_THRESHOLD else ""
         print(f"  {thresh:>7.2f}  {p:>6.3f}  {r:>7.3f}  {f1:>6.3f}  "
               f"{tp:>4}  {fp:>4}  {fn:>4}  {tn:>4}  {int(preds.sum()):>6}{marker}")
 
@@ -279,8 +292,8 @@ def run_phase_b():
     scores_csv  = VAL_DIR / "backtest_phri_scores.csv"
     df_sweep.to_csv(sweep_csv,  index=False)
     df_align.to_csv(scores_csv, index=False)
-    print(f"    ✅ {sweep_csv}")
-    print(f"    ✅ {scores_csv}")
+    print(f"    [OK] {sweep_csv}")
+    print(f"    [OK] {scores_csv}")
 
     # ── 5. Generate 3 diagnostic plots ────────────────────────────────────
     print("[6/6] Generating diagnostic plots ...")
@@ -386,13 +399,13 @@ def run_phase_b():
     ax3.legend(fontsize=9, facecolor=C_CARD, edgecolor=C_MUTED)
     ax3.grid(True, alpha=0.3)
 
-    fig.suptitle("Sentin-AI Backtest Report  ·  Bengaluru 2023–2024",
+    fig.suptitle("Sentin-AI Backtest Report - Bengaluru 2023-2024",
                  fontsize=15, fontweight="bold", color="#e8edf5", y=0.97)
 
     plot_path = VAL_DIR / "backtest_report.png"
     fig.savefig(plot_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
-    print(f"    ✅ {plot_path}")
+    print(f"    [OK] {plot_path}")
 
     # ── Final summary ──────────────────────────────────────────────────────
     print(f"""
@@ -412,7 +425,7 @@ def run_phase_b():
     {scores_csv}
     {plot_path}
 
-🎉 Sentin-AI build complete — all 12 steps done.
+[OK] Sentin-AI build complete - all 12 steps done.
 {'='*60}
 """)
     return df_sweep, roc_auc

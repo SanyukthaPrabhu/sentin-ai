@@ -242,9 +242,11 @@ class SEIRModel:
         sigma = 1.0 / p["incubation_days"]   # E → I rate
         gamma = 1.0 / p["infectious_days"]    # I → R rate
 
-        # Initial conditions
-        E0 = p["initial_exposed"]
-        I0 = initial_infected if initial_infected is not None else 1
+        # Initial conditions scaled by population density
+        pop_scale = N / 340000.0
+        E0 = max(1, int(p["initial_exposed"] * pop_scale))
+        I0_default = max(1, int(1 * pop_scale))
+        I0 = initial_infected if initial_infected is not None else I0_default
         R0_val = 0
         S0 = N - E0 - I0 - R0_val
 

@@ -1,4 +1,4 @@
-﻿"""
+"""
 lstm_model.py
 =============
 Step 4 of the Sentin-AI build order.
@@ -339,7 +339,14 @@ def run(epochs: int = DEFAULT_EPOCHS, batch_size: int = DEFAULT_BATCH,
 
     X, y                                    = load_data()
     (X_tr, y_tr), (X_v, y_v), (X_te, y_te) = split_data(X, y)
-    fit_and_save_scaler(X_tr)               # overwrites full-dataset scaler with train-only stats
+    col_min, col_max = fit_and_save_scaler(X_tr)               # overwrites full-dataset scaler with train-only stats
+    
+    # Normalize splits
+    col_range = np.where((col_max - col_min) == 0, 1.0, col_max - col_min)
+    X_tr = np.clip((X_tr - col_min) / col_range, 0.0, 1.0)
+    X_v  = np.clip((X_v - col_min) / col_range, 0.0, 1.0)
+    X_te = np.clip((X_te - col_min) / col_range, 0.0, 1.0)
+
     class_weight                            = compute_class_weight(y_tr)
     model                                   = build_model(learning_rate=learning_rate)
     train_model(model, X_tr, y_tr, X_v, y_v, class_weight, epochs, batch_size)

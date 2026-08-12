@@ -1,4 +1,4 @@
-﻿"""
+"""
 phri_engine.py
 ==============
 Step 5 of the Sentin-AI build order.
@@ -31,6 +31,10 @@ from dataclasses import dataclass, field
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Optional
+import time
+import urllib.request
+import urllib.parse
+from io import StringIO
 
 # ── Paths ──────────────────────────────────────────────────────────────────
 ROOT              = Path(__file__).resolve().parent.parent
@@ -153,6 +157,136 @@ def _normalize_window(window: np.ndarray) -> np.ndarray:
     return np.clip(out, 0.0, 1.0)
 
 
+def prepare_location_weather(lat: float, lon: float) -> Path:
+    """
+    Check if location-specific weather features exist.
+    If not, download historical weather from NASA POWER API and process it.
+    """
+    import shutil
+    import time
+    import urllib.request
+    import urllib.parse
+    from io import StringIO
+
+    lat_r = round(lat, 2)
+    lon_r = round(lon, 2)
+    cache_path = WEATHER_DIR / f"weather_features_{lat_r}_{lon_r}.csv"
+    
+    if cache_path.exists():
+        return cache_path
+
+    # If it is close to Bengaluru Urban coordinates, copy default weather_features.csv if it exists
+    if abs(lat_r - 12.98) < 0.05 and abs(lon_r - 77.58) < 0.05:
+        if FEATURES_CSV.exists():
+            shutil.copy(str(FEATURES_CSV), str(cache_path))
+            return cache_path
+
+    print(f"[Weather Ingest] Downloading NASA POWER daily weather for {lat_r}, {lon_r}...")
+    
+    # NASA POWER daily points parameters
+    params = urllib.parse.urlencode({
+        "parameters": "T2M,RH2M,PRECTOTCORR,T2MDEW,WS10M,ALLSKY_KT",
+        "community":  "RE",
+        "longitude":  lon_r,
+        "latitude":   lat_r,
+        "start":      "20230101",
+        "end":        "20241231",
+        "format":     "CSV",
+    })
+    url = f"https://power.larc.nasa.gov/api/temporal/daily/point?{params}"
+    
+    raw_csv = None
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(url, timeout=30) as resp:
+                raw_csv = resp.read().decode("utf-8")
+            break
+        except Exception as e:
+            print(f"[Weather Ingest] Download attempt {attempt+1} failed: {e}. Retrying in 2s...")
+            time.sleep(2)
+            
+    if not raw_csv:
+        print("[Weather Ingest] Failed to download, falling back to default weather_features.csv")
+        if FEATURES_CSV.exists():
+            shutil.copy(str(FEATURES_CSV), str(cache_path))
+            return cache_path
+        raise RuntimeError("No weather data available and fallback failed.")
+
+    # Parse NASA POWER CSV
+    lines = raw_csv.splitlines()
+    start_idx = 0
+    for idx, line in enumerate(lines):
+        if "-END HEADER-" in line:
+            start_idx = idx + 1
+            break
+            
+    data_block = "\n".join(lines[start_idx:])
+    df = pd.read_csv(StringIO(data_block))
+    
+    # Rename columns to match COLUMN_MAP
+    rename_map = {
+        "T2M"          : "temperature_2m_c",
+        "RH2M"         : "relative_humidity_pct",
+        "PRECTOTCORR"  : "precipitation_imerg_mm",
+        "T2MDEW"       : "dew_frost_point_c",
+        "WS10M"        : "wind_speed_10m_ms",
+        "ALLSKY_KT"    : "all_sky_insolation_clearness",
+    }
+    df = df.rename(columns=rename_map)
+    
+    # Handle Date Index
+    if all(c in df.columns for c in ["YEAR", "MO", "DY"]):
+        df["date"] = pd.to_datetime(
+            df[["YEAR", "MO", "DY"]].rename(columns={"YEAR": "year", "MO": "month", "DY": "day"})
+        )
+        df = df.drop(columns=["YEAR", "MO", "DY"], errors="ignore")
+    else:
+        df["date"] = pd.date_range("2023-01-01", periods=len(df), freq="D")
+        
+    df = df.set_index("date").sort_index()
+    df = df.replace(-999, np.nan).replace(-999.0, np.nan)
+    df = df.ffill().bfill()
+    
+    # Feature engineering
+    df["precip_7d_sum"]  = df["precipitation_imerg_mm"].rolling(7, min_periods=1).sum()
+    df["precip_7d_mean"] = df["precipitation_imerg_mm"].rolling(7, min_periods=1).mean()
+    df["humidity_lag1"] = df["relative_humidity_pct"].shift(1).bfill()
+    df["temp_lag1"]     = df["temperature_2m_c"].shift(1).bfill()
+    
+    T   = df["temperature_2m_c"]
+    RH  = df["relative_humidity_pct"]
+    df["heat_humidity_index"] = T + 0.33 * (RH / 100) * 6.105 * np.exp(17.27 * T / (237.7 + T)) - 4.0
+    
+    # Add YOLO visual slots — fill with 0.0 (or merge if available for default Bengaluru coordinates)
+    yolo_csv = YOLO_FEATURES_CSV
+    if yolo_csv.exists() and abs(lat_r - 12.98) < 0.05 and abs(lon_r - 77.58) < 0.05:
+        try:
+            yolo_df = pd.read_csv(yolo_csv)
+            yolo_df["date"] = pd.to_datetime(yolo_df["date"])
+            yolo_df = yolo_df.set_index("date").sort_index()
+            yolo_df_aligned = yolo_df.reindex(df.index, method="nearest", limit=15).fillna(0.0)
+            for col in ["stagnant_water_count", "stagnant_water_area_px",
+                        "garbage_count", "vegetation_anomaly_score"]:
+                df[col] = yolo_df_aligned[col]
+        except Exception:
+            for col in ["stagnant_water_count", "stagnant_water_area_px",
+                        "garbage_count", "vegetation_anomaly_score"]:
+                df[col] = 0.0
+    else:
+        for col in ["stagnant_water_count", "stagnant_water_area_px",
+                    "garbage_count", "vegetation_anomaly_score"]:
+            df[col] = 0.0
+            
+    # Zero fill any other missing columns
+    for col in ["temperature_2m_c", "relative_humidity_pct", "precipitation_imerg_mm", 
+                "dew_frost_point_c", "wind_speed_10m_ms", "all_sky_insolation_clearness"]:
+        if col not in df.columns:
+            df[col] = 0.0
+            
+    df.to_csv(cache_path)
+    return cache_path
+
+
 # ── Main engine class ──────────────────────────────────────────────────────
 class PHRIEngine:
     """
@@ -181,17 +315,36 @@ class PHRIEngine:
         print(f"[PHRIEngine] Model loaded from {self._model_path.name}")
 
     # ── Historical features loader (lazy) ──────────────────────────────────
-    def _load_history(self):
-        if self._df_hist is not None:
-            return
-        if not FEATURES_CSV.exists():
-            raise FileNotFoundError(
-                f"{FEATURES_CSV} not found.\n"
-                "Run Step 1 first:  python src/nasa_power_parser.py"
-            )
-        self._df_hist = pd.read_csv(FEATURES_CSV, index_col=0, parse_dates=True)
-        print(f"[PHRIEngine] Historical features loaded: "
-              f"{self._df_hist.index[0].date()} to {self._df_hist.index[-1].date()}")
+    def _load_history(self, lat: float = None, lon: float = None):
+        """
+        Loads location-specific historical features.
+        If lat/lon are provided, fetches and prepares data for that location if not cached.
+        Otherwise falls back to default weather_features.csv.
+        """
+        if lat is not None and lon is not None:
+            lat_r = round(lat, 2)
+            lon_r = round(lon, 2)
+            if hasattr(self, "_loaded_coords") and self._loaded_coords == (lat_r, lon_r) and self._df_hist is not None:
+                return
+            
+            csv_path = prepare_location_weather(lat, lon)
+            self._df_hist = pd.read_csv(csv_path, index_col=0, parse_dates=True)
+            self._loaded_coords = (lat_r, lon_r)
+            print(f"[PHRIEngine] Historical features loaded for location ({lat_r}, {lon_r}): "
+                  f"{self._df_hist.index[0].date()} to {self._df_hist.index[-1].date()}")
+        else:
+            if self._df_hist is not None and not hasattr(self, "_loaded_coords"):
+                return
+            if not FEATURES_CSV.exists():
+                raise FileNotFoundError(
+                    f"{FEATURES_CSV} not found.\n"
+                    "Run Step 1 first:  python src/nasa_power_parser.py"
+                )
+            self._df_hist = pd.read_csv(FEATURES_CSV, index_col=0, parse_dates=True)
+            if hasattr(self, "_loaded_coords"):
+                delattr(self, "_loaded_coords")
+            print(f"[PHRIEngine] Historical features loaded (default): "
+                  f"{self._df_hist.index[0].date()} to {self._df_hist.index[-1].date()}")
 
     # ── YOLO features loader (lazy) ────────────────────────────────────────
     def _load_yolo_features(self):
@@ -246,14 +399,14 @@ class PHRIEngine:
         return round(score, 4)
 
     # ── Mode 1: Historical scoring ─────────────────────────────────────────
-    def score_historical(self, target_date: date) -> PHRIResult:
+    def score_historical(self, target_date: date, lat: float = None, lon: float = None) -> PHRIResult:
         """
-        Score a past date using the saved weather_features.csv.
+        Score a past date using location-specific weather features.
         The 30-day window ends on target_date.
         YOLO visual features will be placeholder zeros unless
         gee_pipeline + yolo_inference have been run (Phase 4).
         """
-        self._load_history()
+        self._load_history(lat, lon)
         df = self._df_hist
 
         end_ts   = pd.Timestamp(target_date)
@@ -306,10 +459,12 @@ class PHRIEngine:
             raw_features     = window_raw,
         )
 
-    # ── Mode 2: Real-time scoring ──────────────────────────────────────────
     def score_realtime(self,
                        weather: dict,
-                       yolo: Optional[dict] = None) -> PHRIResult:
+                       yolo: Optional[dict] = None,
+                       lat: float = None,
+                       lon: float = None,
+                       is_manual: bool = False) -> PHRIResult:
         """
         Score using live data dicts.
 
@@ -332,37 +487,78 @@ class PHRIEngine:
           }
 
         The window is built by appending today's live row to the last
-        29 days from weather_features.csv, then running inference.
+        29 days from weather_features_{lat}_{lon}.csv, then running inference.
         """
-        self._load_history()
+        if not is_manual:
+            self._load_history(lat, lon)
+        else:
+            self._df_hist = None
 
-        # Build 30-day feature window centered around live weather snapshot
+        # Build 30-day feature window
         window_raw = np.zeros((30, 10), dtype=np.float32)
 
-        weather_cols = LSTM_FEATURES[:6]
-        np.random.seed(42)  # consistent variation
-
-        for j, col in enumerate(weather_cols):
-            val = float(weather.get(col, 0.0))
-            if col == "precipitation_imerg_mm":
-                if val <= 0.01:
-                    window_raw[:, j] = 0.0
+        # Try to load actual last 29 days from local history for the same calendar period
+        history_loaded = False
+        if not is_manual and self._df_hist is not None and len(self._df_hist) >= 29:
+            try:
+                today_date = date.today()
+                last_hist_year = self._df_hist.index[-1].year
+                try:
+                    target_date = date(last_hist_year, today_date.month, today_date.day)
+                except ValueError:
+                    target_date = date(last_hist_year, today_date.month, today_date.day - 1)
+                
+                if pd.Timestamp(target_date) in self._df_hist.index:
+                    loc_val = self._df_hist.index.get_loc(pd.Timestamp(target_date))
+                    if isinstance(loc_val, slice):
+                        end_idx = loc_val.start
+                    elif isinstance(loc_val, (np.ndarray, list)):
+                        end_idx = int(loc_val[0])
+                    else:
+                        end_idx = int(loc_val)
+                    
+                    if end_idx >= 28:
+                        last_29 = self._df_hist.iloc[end_idx - 28 : end_idx + 1][LSTM_FEATURES].values
+                        if len(last_29) == 29:
+                            window_raw[:29] = last_29
+                            history_loaded = True
+                            print(f"[PHRIEngine] Aligned real-time window with historical baseline from "
+                                  f"{target_date - timedelta(days=28)} to {target_date}")
                 else:
-                    noise = np.random.exponential(scale=val, size=30)
+                    print(f"[PHRIEngine] Target historical date {target_date} not in index. Falling back.")
+            except Exception as e:
+                print(f"[PHRIEngine] Error aligning historical baseline window: {e}")
+
+        # Fallback to noise generation only if history loading failed
+        weather_cols = LSTM_FEATURES[:6]
+        if not history_loaded:
+            print("[PHRIEngine] ! History unavailable or too short, generating synthetic weather noise.")
+            np.random.seed(42)  # consistent variation
+            for j, col in enumerate(weather_cols):
+                val = float(weather.get(col, 0.0))
+                if col == "precipitation_imerg_mm":
+                    if val <= 0.01:
+                        window_raw[:, j] = 0.0
+                    else:
+                        noise = np.random.exponential(scale=val, size=30)
+                        noise[-1] = val
+                        window_raw[:, j] = np.clip(noise, 0.0, 100.0)
+                elif col == "relative_humidity_pct":
+                    noise = val + np.random.normal(loc=0.0, scale=2.0, size=30)
                     noise[-1] = val
-                    window_raw[:, j] = np.clip(noise, 0.0, 100.0)
-            elif col == "relative_humidity_pct":
-                noise = val + np.random.normal(loc=0.0, scale=2.0, size=30)
-                noise[-1] = val
-                window_raw[:, j] = np.clip(noise, 10.0, 100.0)
-            elif col == "temperature_2m_c":
-                noise = val + np.random.normal(loc=0.0, scale=1.0, size=30)
-                noise[-1] = val
-                window_raw[:, j] = np.clip(noise, 5.0, 50.0)
-            else:
-                noise = val + np.random.normal(loc=0.0, scale=max(abs(val) * 0.05, 0.1), size=30)
-                noise[-1] = val
-                window_raw[:, j] = noise
+                    window_raw[:, j] = np.clip(noise, 10.0, 100.0)
+                elif col == "temperature_2m_c":
+                    noise = val + np.random.normal(loc=0.0, scale=1.0, size=30)
+                    noise[-1] = val
+                    window_raw[:, j] = np.clip(noise, 5.0, 50.0)
+                else:
+                    noise = val + np.random.normal(loc=0.0, scale=max(abs(val) * 0.05, 0.1), size=30)
+                    noise[-1] = val
+                    window_raw[:, j] = noise
+        else:
+            # Overwrite the 30th day with today's live weather
+            for j, col in enumerate(weather_cols):
+                window_raw[29, j] = float(weather.get(col, 0.0))
 
         # Apply YOLO visual features & satellite spectral indices
         visual_complete = yolo is not None and any(v > 0 for v in yolo.values()) if yolo else False

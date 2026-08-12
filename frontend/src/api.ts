@@ -144,5 +144,10 @@ export const api = {
 
   imagery: () => get<ImageryData>('/api/imagery/latest'),
 
-  history: () => get<{ data: HistoryPoint[]; is_proxy: boolean }>('/api/history'),
+  history: (lat?: number, lon?: number) =>
+    get<{ data: HistoryPoint[]; is_proxy: boolean }>(
+      lat !== undefined && lon !== undefined
+        ? `/api/history?lat=${lat}&lon=${lon}`
+        : '/api/history'
+    ),
 };

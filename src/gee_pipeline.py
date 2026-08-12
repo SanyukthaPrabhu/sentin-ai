@@ -257,7 +257,8 @@ class GEEPipeline:
         -------
         Path to saved PNG, or None on failure.
         """
-        filename = IMAGERY_DIR / f"S2_{date_str}_{kind}.png"
+        loc_str = f"{self.lat:.4f}_{self.lon:.4f}"
+        filename = IMAGERY_DIR / f"S2_{date_str}_{loc_str}_{kind}.png"
         if filename.exists():
             print(f"  [skip] {filename.name} already exists")
             return filename
@@ -293,7 +294,8 @@ class GEEPipeline:
         -------
         Path to saved .npy file, or None on failure.
         """
-        npy_path = IMAGERY_DIR / f"S2_{date_str}_ndwi.npy"
+        loc_str = f"{self.lat:.4f}_{self.lon:.4f}"
+        npy_path = IMAGERY_DIR / f"S2_{date_str}_{loc_str}_ndwi.npy"
         if npy_path.exists():
             print(f"  [skip] {npy_path.name} already exists")
             return npy_path
@@ -383,6 +385,8 @@ class GEEPipeline:
 
             records.append({
                 **meta,
+                "lat": self.lat,
+                "lon": self.lon,
                 "rgb_path":      str(rgb_path)  if rgb_path  else None,
                 "ndwi_png_path": str(ndwi_path) if ndwi_path else None,
                 "ndwi_npy_path": str(npy_path)  if npy_path  else None,
@@ -432,6 +436,8 @@ class GEEPipeline:
 
         latest_meta = {
             **meta,
+            "lat": self.lat,
+            "lon": self.lon,
             "rgb_path": str(rgb_path) if rgb_path else None,
             "ndwi_png_path": str(ndwi_path) if ndwi_path else None,
             "ndwi_npy_path": str(npy_path) if npy_path else None,
@@ -440,7 +446,16 @@ class GEEPipeline:
         # Update or append to metadata CSV
         if METADATA_CSV.exists():
             df = pd.read_csv(METADATA_CSV)
-            if date_str not in df["date"].values:
+            # Check if this date + coordinate combination already exists
+            exists = False
+            if "lat" in df.columns and "lon" in df.columns:
+                exists = ((df["date"] == date_str) & 
+                          (np.isclose(df["lat"], self.lat, atol=0.001)) & 
+                          (np.isclose(df["lon"], self.lon, atol=0.001))).any()
+            else:
+                exists = (df["date"] == date_str).any()
+                
+            if not exists:
                 df = pd.concat([df, pd.DataFrame([latest_meta])], ignore_index=True)
                 df.to_csv(METADATA_CSV, index=False)
         else:

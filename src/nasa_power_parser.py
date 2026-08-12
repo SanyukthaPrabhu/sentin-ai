@@ -1,4 +1,4 @@
-﻿"""
+"""
 nasa_power_parser.py
 ====================
 Step 1 of the Sentin-AI build order.
@@ -265,8 +265,7 @@ def build_sequences(df: pd.DataFrame, window: int = WINDOW_SIZE, horizon: int = 
     # lstm_model.py will re-fit on train split only and overwrite this file.
     col_min   = feature_matrix.min(axis=0)
     col_max   = feature_matrix.max(axis=0)
-    col_range = np.where((col_max - col_min) == 0, 1.0, col_max - col_min)
-    feature_matrix_norm = (feature_matrix - col_min) / col_range
+    feature_matrix_norm = feature_matrix
 
     # Save scaler (full-dataset version; will be overwritten by train-only scaler later)
     MODELS_DIR = ROOT / "models"

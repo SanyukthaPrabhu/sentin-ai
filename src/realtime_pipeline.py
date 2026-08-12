@@ -1,4 +1,4 @@
-﻿"""
+"""
 realtime_pipeline.py
 ====================
 Sentin-AI Live Automated Real-Time Pipeline.
@@ -182,7 +182,7 @@ def run_live_pipeline(lat: float = None, lon: float = None,
     # ── 5. PHRI Score & Analytics ───────────────────────────────────────────
     print("\n[4/5] Computing live PHRI score via trained LSTM model...")
     engine = PHRIEngine()
-    phri_result = engine.score_realtime(weather_dict, yolo_dict)
+    phri_result = engine.score_realtime(weather_dict, yolo_dict, lat=lat, lon=lon)
     print(f"      {phri_result}")
 
     # Log SAR flag in the metadata so the dashboard can show a badge

@@ -433,8 +433,9 @@ class YOLOInference:
             if pd.isna(ndvi_mean):
                 ndvi_mean = None
 
-            rgb_path = IMAGERY_DIR / f"S2_{date_str}_rgb.png"
-            npy_path = IMAGERY_DIR / f"S2_{date_str}_ndwi.npy"
+            # Use paths from CSV if available, else fallback to standard format
+            rgb_path = Path(row["rgb_path"]) if "rgb_path" in row and pd.notna(row["rgb_path"]) else IMAGERY_DIR / f"S2_{date_str}_rgb.png"
+            npy_path = Path(row["ndwi_npy_path"]) if "ndwi_npy_path" in row and pd.notna(row["ndwi_npy_path"]) else IMAGERY_DIR / f"S2_{date_str}_ndwi.npy"
 
             if not rgb_path.exists():
                 print(f"  [{date_str}] RGB not found -- skipping")
