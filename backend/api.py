@@ -409,6 +409,18 @@ def pipeline_manual(req: ManualPipelineRequest):
         conn.commit()
         conn.close()
 
+        # Trigger Alert Engine (same as live pipeline) so manual runs also send Telegram alerts
+        alert_engine = AlertEngine()
+        alert_engine.evaluate_location_risk(
+            location_name=loc.location_name,
+            lat=loc.lat, lon=loc.lon,
+            phri_score=phri_result.phri_score,
+            disease_bucket=disease_route.primary_bucket,
+            disease_label=disease_route.meta.get("label", "—"),
+            weather_dict=weather,
+            yolo_dict=yolo
+        )
+
         return _run_core_pipeline(
             phri_result, disease_route, seir_result, bulletin,
             weather, yolo, loc.location_name

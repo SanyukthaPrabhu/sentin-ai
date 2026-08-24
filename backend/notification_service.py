@@ -235,7 +235,7 @@ class NotificationService:
         global_chat_id = os.getenv("TELEGRAM_CHAT_ID")
         target_chat = recipient_phone if recipient_phone and (recipient_phone.startswith("-") or recipient_phone.isdigit()) else global_chat_id
         
-        if bot_token and target_chat and alert_title.startswith("Welcome to Sentin-AI!"):
+        if bot_token and target_chat:
             success_tg, log_tg = self.providers["telegram"].send(target_chat, alert_title, alert_message)
             status_tg = "success" if success_tg else "failed"
             logs_to_write.append(("telegram", status_tg, log_tg if not success_tg else None))

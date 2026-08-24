@@ -1,7 +1,11 @@
 # backend/alert_engine.py
+import os
 from datetime import datetime, timedelta
 from database import get_connection, log_system_event
 from notification_service import NotificationService
+
+# Minimum hours between repeated Telegram alerts for the same location (avoids spam)
+TELEGRAM_COOLDOWN_HOURS = int(os.getenv("TELEGRAM_COOLDOWN_HOURS", 4))
 
 class AlertEngine:
     def __init__(self):
@@ -170,27 +174,58 @@ class AlertEngine:
                     f"Deduplicated alert for {location_name}: extended expiry for alert #{alert_id}.",
                     location=location_name, stage="alert_generation"
                 )
-                
-        # ── 3. Notify Subscribers ────────────────────────────────────────────
-        if should_notify and alert_id:
-            # 1. Trigger System-Wide Telegram Broadcast
-            try:
+
+        # ── 3. Telegram Broadcast (fires on new AND ongoing alerts, with cooldown) ────
+        # Check cooldown: read last Telegram notification time for this location from system_logs
+        try:
+            cooldown_conn = get_connection()
+            cooldown_cursor = cooldown_conn.cursor()
+            cooldown_cursor.execute("""
+                SELECT timestamp FROM system_logs
+                WHERE stage = 'telegram_sent' AND location = ?
+                ORDER BY timestamp DESC LIMIT 1
+            """, (location_name,))
+            last_tg_row = cooldown_cursor.fetchone()
+            cooldown_conn.close()
+
+            tg_ok_to_send = True
+            if last_tg_row:
+                last_tg_dt = datetime.strptime(last_tg_row[0], "%Y-%m-%d %H:%M:%S")
+                hours_since = (datetime.now() - last_tg_dt).total_seconds() / 3600
+                if hours_since < TELEGRAM_COOLDOWN_HOURS:
+                    tg_ok_to_send = False
+                    log_system_event(
+                        "INFO",
+                        f"Telegram cooldown active for {location_name}: last sent {hours_since:.1f}h ago (cooldown={TELEGRAM_COOLDOWN_HOURS}h).",
+                        location=location_name, stage="notification_dispatch"
+                    )
+
+            if tg_ok_to_send and alert_id:
                 from notification_service import TelegramProvider
                 tg = TelegramProvider()
                 tg_success, tg_msg = tg.send(recipient="", title=title, message=message)
-                log_system_event(
-                    "INFO",
-                    f"Telegram broadcast completed: {tg_msg}",
-                    location=location_name, stage="notification_dispatch"
-                )
-            except Exception as tg_err:
-                log_system_event(
-                    "ERROR",
-                    f"Telegram broadcast failed: {tg_err}",
-                    location=location_name, stage="notification_dispatch"
-                )
+                if tg_success:
+                    # Record the send time so cooldown works on next run
+                    log_system_event(
+                        "INFO",
+                        f"Telegram broadcast sent: {tg_msg}",
+                        location=location_name, stage="telegram_sent"
+                    )
+                else:
+                    log_system_event(
+                        "ERROR",
+                        f"Telegram broadcast failed: {tg_msg}",
+                        location=location_name, stage="notification_dispatch"
+                    )
+        except Exception as tg_err:
+            log_system_event(
+                "ERROR",
+                f"Telegram broadcast exception: {tg_err}",
+                location=location_name, stage="notification_dispatch"
+            )
 
-            # 2. Query matching subscribers for other channels
+        # ── 4. Notify email/SMS/WhatsApp subscribers (new alerts only) ───────
+        if should_notify and alert_id:
             cursor.execute("""
                 SELECT id, email, phone, all_alerts, environmental_alerts, disease_risk_alerts, weather_alerts, official_disaster_alerts, severity_preference 
                 FROM subscriptions 
@@ -199,13 +234,13 @@ class AlertEngine:
             subs_rows = cursor.fetchall()
             subs = [dict(r) for r in subs_rows]
             conn.close()
-            
+
             sev_rank = {"MODERATE": 1, "HIGH": 2, "CRITICAL": 3}
             alert_rank = sev_rank.get(target_severity, 0)
-            
+
             for sub in subs:
                 sub_pref_rank = sev_rank.get(sub["severity_preference"], 2) # default to HIGH
-                
+
                 # Check if alert matches user severity preference
                 if alert_rank >= sub_pref_rank:
                     pref_dict = {
