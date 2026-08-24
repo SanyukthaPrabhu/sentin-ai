@@ -39,7 +39,20 @@ export default function MetricCard({ title, value, sub, color = 'var(--cyan)', d
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay, ease: [0.16, 1, 0.3, 1] }}
+      style={{ position: 'relative', overflow: 'hidden' }}
     >
+      {/* Dynamic Status Indicator Dot */}
+      <div style={{
+        position: 'absolute',
+        top: 14,
+        right: 14,
+        width: 6,
+        height: 6,
+        borderRadius: '50%',
+        background: color,
+        boxShadow: `0 0 8px ${color}`,
+      }} />
+
       <div className="metric-title">{title}</div>
       <div
         className="metric-value"

@@ -62,7 +62,7 @@ function RangeSlider({ label, value, min, max, step, unit, onChange }: {
     <div style={{ marginBottom: '0.85rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
         <span className="sidebar-label" style={{ marginBottom: 0 }}>{label}</span>
-        <span style={{ fontFamily: 'DM Mono', fontSize: '0.75rem', color: 'var(--cyan)' }}>
+        <span style={{ fontFamily: 'DM Mono', fontSize: '0.88rem', fontWeight: 'bold', color: 'var(--cyan)' }}>
           {value}{unit}
         </span>
       </div>
@@ -161,7 +161,7 @@ export default function Sidebar({
       {/* Mode tabs */}
       <div style={{ marginBottom: '1.25rem' }}>
         <span className="sidebar-label">⚙️ Analysis Mode</span>
-        <div className="mode-tabs" style={{ display: 'flex', gap: '2px', background: 'var(--bg-void)', padding: '2px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-glow)' }}>
+        <div className="mode-tabs" style={{ display: 'flex', gap: '4px', background: 'var(--bg-void)', padding: '4px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-glow)' }}>
           {MODES.map(m => (
             <button
               key={m.id}
@@ -170,8 +170,8 @@ export default function Sidebar({
               style={{
                 position: 'relative',
                 flex: 1,
-                padding: '0.45rem 0.3rem',
-                fontSize: '0.78rem',
+                padding: '0.65rem 0.75rem',
+                fontSize: '0.88rem',
                 border: 'none',
                 background: 'transparent',
                 cursor: 'pointer',

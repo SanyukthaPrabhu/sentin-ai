@@ -120,20 +120,18 @@ export default function CustomDropdown({ options, value, onChange, label }: Prop
             exit={{ opacity: 0, scale: 0.95, y: -4 }}
             transition={{ duration: 0.12 }}
             role="listbox"
+            className="custom-dropdown-menu"
             style={{
               position: 'absolute',
               top: '100%',
               left: 0,
               right: 0,
-              zIndex: 50,
-              marginTop: '4px',
-              padding: '4px 0',
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border-glow)',
+              zIndex: 100,
+              marginTop: '6px',
+              padding: '6px 0',
               borderRadius: 'var(--radius-sm)',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
               listStyle: 'none',
-              maxHeight: '220px',
+              maxHeight: '260px',
               overflowY: 'auto',
               outline: 'none'
             }}
@@ -153,21 +151,18 @@ export default function CustomDropdown({ options, value, onChange, label }: Prop
                   }}
                   onMouseEnter={() => setHighlightedIndex(idx)}
                   style={{
-                    padding: '0.45rem 0.75rem',
-                    fontSize: '0.82rem',
                     color: isSelected 
                       ? 'var(--cyan)' 
                       : (isHighlighted ? 'var(--text-primary)' : 'var(--text-secondary)'),
                     background: isHighlighted 
-                      ? 'var(--bg-card-hover)'
+                      ? 'rgba(var(--cyan-rgb), 0.12)'
                       : 'transparent',
                     cursor: 'pointer',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    transition: 'background 0.1s, color 0.1s'
                   }}
-                  className={`dropdown-option-item ${isHighlighted ? 'highlighted' : ''}`}
+                  className={`custom-dropdown-option dropdown-option-item ${isHighlighted ? 'highlighted' : ''}`}
                 >
                   <span>{opt.label}</span>
                   {isSelected && (

@@ -28,6 +28,8 @@ def main():
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         bufsize=1
     )
 
@@ -51,6 +53,8 @@ def main():
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         bufsize=1
     )
 
@@ -74,8 +78,14 @@ def main():
         import threading
         def stream_logs(proc, prefix):
             for line in iter(proc.stdout.readline, ''):
-                if line.strip():
-                    print(f"[{prefix}] {line.strip()}")
+                stripped = line.strip()
+                if stripped:
+                    try:
+                        print(f"[{prefix}] {stripped}")
+                    except UnicodeEncodeError:
+                        enc = sys.stdout.encoding or "utf-8"
+                        safe_line = stripped.encode(enc, errors="replace").decode(enc)
+                        print(f"[{prefix}] {safe_line}")
 
         t1 = threading.Thread(target=stream_logs, args=(backend_proc, "API"), daemon=True)
         t2 = threading.Thread(target=stream_logs, args=(frontend_proc, "Vite"), daemon=True)

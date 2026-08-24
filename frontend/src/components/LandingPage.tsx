@@ -46,13 +46,60 @@ interface Props {
   onStartSurveillance: (city: LocationConfig) => void;
   onNavigateToStress: () => void;
   theme: 'dark' | 'light';
+  location: LocationConfig;
+  onLocationChange: (loc: LocationConfig) => void;
+  onSearchSubmit: () => void;
+  officialAlerts: any[];
+  aiAlerts: any[];
 }
 
-export default function LandingPage({ onStartSurveillance, onNavigateToStress, theme }: Props) {
+export default function LandingPage({
+  onStartSurveillance,
+  onNavigateToStress,
+  theme,
+  location,
+  onLocationChange,
+  onSearchSubmit,
+  officialAlerts,
+  aiAlerts,
+}: Props) {
   const isDark = theme === 'dark';
 
   return (
     <div style={{ flex: 1, overflowY: 'auto' }}>
+
+      {/* ── Active Disaster Warnings (Alert banner) ── */}
+      {officialAlerts.length > 0 && (
+        <div style={{ maxWidth: 1100, margin: '1.5rem auto 0', padding: '0 1.5rem' }}>
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            style={{
+              background: 'rgba(239, 68, 68, 0.05)',
+              border: '1px solid var(--red)',
+              borderRadius: 12,
+              padding: '1rem 1.5rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.5rem',
+              boxShadow: '0 0 12px rgba(239, 68, 68, 0.05)'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--red)', fontWeight: 800, fontSize: '0.85rem', textTransform: 'uppercase', fontFamily: 'DM Mono' }}>
+              🚨 Active Official Disaster Warnings
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {officialAlerts.slice(0, 2).map(alert => (
+                <div key={alert.id} style={{ fontSize: '0.82rem', borderLeft: '3px solid var(--red)', paddingLeft: '0.75rem' }}>
+                  <strong style={{ color: 'var(--text-primary)' }}>{alert.title} ({alert.location})</strong>
+                  <p style={{ color: 'var(--text-secondary)', marginTop: '0.15rem', lineHeight: 1.4 }}>{alert.message}</p>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Authority Source: {alert.source}</span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       {/* ── Responsive Split Hero Section ── */}
       <div className="hero-split-container" style={{
@@ -92,9 +139,30 @@ export default function LandingPage({ onStartSurveillance, onNavigateToStress, t
             Autonomous<br />Epidemiological<br />Intelligence
           </h1>
 
-          <p className="landing-tagline" style={{ margin: '0 0 2rem 0', fontSize: '0.95rem', color: 'var(--text-secondary)' }}>
+          <p className="landing-tagline" style={{ margin: '0 0 1rem 0', fontSize: '0.95rem', color: 'var(--text-secondary)' }}>
             Sentin-AI fuses Sentinel-2 GEE remote sensing, YOLOv8 computer vision, and deep LSTM temporal sequences to predict disease outbreak windows before they manifest.
           </p>
+
+          {/* Search tools */}
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            onSearchSubmit();
+          }} style={{ display: 'flex', gap: '0.5rem', marginTop: '1.25rem', marginBottom: '1.75rem', maxWidth: 500 }}>
+            <input
+              type="text"
+              placeholder="Search target district, city, or coordinate..."
+              value={location.location_name}
+              onChange={(e) => onLocationChange({ ...location, location_name: e.target.value })}
+              style={{
+                flex: 1, padding: '0.65rem 0.95rem', border: '1px solid var(--border-glow)',
+                borderRadius: 8, background: 'rgba(255,255,255,0.02)', color: 'var(--text-primary)',
+                fontSize: '0.88rem', outline: 'none', transition: 'border-color 0.2s'
+              }}
+            />
+            <button type="submit" className="btn btn-primary" style={{ padding: '0.65rem 1.25rem', fontSize: '0.88rem', fontWeight: 600 }}>
+              ⚡ Check Risk
+            </button>
+          </form>
 
           <div className="landing-actions" style={{ display: 'flex', gap: '0.75rem' }}>
             <motion.button
@@ -244,6 +312,85 @@ export default function LandingPage({ onStartSurveillance, onNavigateToStress, t
               </div>
             </motion.div>
           ))}
+        </div>
+      </div>
+
+      {/* ── Live Risk Feed & Emergency Contacts ── */}
+      <div style={{ maxWidth: 1000, margin: '3rem auto 0', padding: '0 1rem', display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1.5rem' }}>
+        {/* Live Risk Feed */}
+        <motion.div
+          className="landing-card"
+          initial={{ opacity: 0, y: 15 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+        >
+          <h3 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            🛰️ Live Risk Feed
+          </h3>
+          <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+            Recent AI-generated risk advisories derived from Sentinel observation sequences:
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: 200, overflowY: 'auto', paddingRight: '0.4rem' }}>
+            {aiAlerts.slice(0, 3).map(alert => {
+              const score = alert.phri_score || 0;
+              const col = score < 0.40 ? 'var(--green)' : score < 0.60 ? 'var(--amber)' : score < 0.75 ? '#f97316' : 'var(--red)';
+              return (
+                <div key={alert.id} style={{ paddingBottom: '0.75rem', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '0.15rem' }}>
+                    <strong style={{ color: col }}>
+                      {alert.severity} Risk
+                    </strong>
+                    <span style={{ color: 'var(--text-muted)', fontFamily: 'DM Mono' }}>{alert.location}</span>
+                  </div>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>{alert.title}</span>
+                </div>
+              );
+            })}
+            {aiAlerts.length === 0 && (
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', padding: '1.5rem' }}>
+                No active AI warnings flagged.
+              </div>
+            )}
+          </div>
+        </motion.div>
+
+        {/* Emergency Contacts */}
+        <motion.div
+          className="landing-card"
+          initial={{ opacity: 0, y: 15 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+        >
+          <h3 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            🚨 Emergency Contacts & Channels
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.78rem' }}>
+            <div style={{ padding: '0.5rem', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-glow)', borderRadius: 6 }}>
+              <div style={{ color: 'var(--text-secondary)' }}>National Disaster Response (NDRF)</div>
+              <strong style={{ color: 'var(--red)', fontSize: '0.85rem' }}>📞 1078 / 011-24363260</strong>
+            </div>
+            <div style={{ padding: '0.5rem', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-glow)', borderRadius: 6 }}>
+              <div style={{ color: 'var(--text-secondary)' }}>Public Health Outbreak Control</div>
+              <strong style={{ color: 'var(--red)', fontSize: '0.85rem' }}>📞 1075 (National Outbreak Helpline)</strong>
+            </div>
+            <div style={{ padding: '0.5rem', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-glow)', borderRadius: 6 }}>
+              <div style={{ color: 'var(--text-secondary)' }}>Meteorological Center (IMD)</div>
+              <strong style={{ color: 'var(--cyan)', fontSize: '0.85rem' }}>🔗 mausam.imd.gov.in</strong>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Public Disclaimer */}
+      <div style={{ maxWidth: 1000, margin: '2rem auto 4rem', padding: '0 1rem' }}>
+        <div style={{
+          background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-glow)',
+          borderRadius: 12, padding: '1.25rem 1.5rem', fontSize: '0.78rem', lineHeight: 1.5, color: 'var(--text-secondary)'
+        }}>
+          <strong style={{ color: 'var(--amber)', display: 'block', marginBottom: '0.25rem' }}>⚠️ PUBLIC HEALTH &amp; SAFETY DISCLAIMER</strong>
+          Sentin-AI provides AI-generated environmental risk assessments for awareness and early risk identification. It does NOT replace official government warnings, emergency evacuation orders, professional medical advice, or authorized disaster-management instructions. Always follow instructions from authorized public bodies (such as IMD, NDMA, and State health departments) as the primary ground truth.
         </div>
       </div>
 

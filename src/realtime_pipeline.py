@@ -128,11 +128,10 @@ def run_live_pipeline(lat: float = None, lon: float = None,
                     if latest_meta.get("ndwi_npy_path") else None)
         yolo_dict = yolo.run_single_image(rgb_path, npy_path,
                                           latest_meta.get("ndvi_mean"))
-        mask_used = "mask-area" if any(
-            d.get("mask_available") for d in (yolo.model.predict(
-                str(rgb_path), conf=yolo.conf, verbose=False, save=False
-            )[0].boxes or [])
-        ) else "bbox-area"
+        results = yolo.model.predict(
+            str(rgb_path), conf=yolo.conf, verbose=False, save=False
+        )
+        mask_used = "mask-area" if (len(results) > 0 and results[0].masks is not None) else "bbox-area"
         print(f"      Visual Features -> Water count: {yolo_dict['stagnant_water_count']} | "
               f"Garbage count: {yolo_dict['garbage_count']} | "
               f"Veg Anomaly: {yolo_dict['vegetation_anomaly_score']} "

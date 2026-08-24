@@ -75,6 +75,16 @@ export default function PHRIGauge({ score, riskLevel }: Props) {
       </div>
 
       <svg viewBox="0 0 220 145" style={{ width: '100%', maxWidth: 260, overflow: 'visible' }}>
+        <defs>
+          <filter id="gauge-glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+
         {/* Background segments */}
         {segments.map((seg, i) => (
           <path
@@ -82,7 +92,7 @@ export default function PHRIGauge({ score, riskLevel }: Props) {
             d={arcPath(CX, CY, R, seg.from, seg.to)}
             fill="none"
             stroke={seg.color}
-            strokeWidth={18}
+            strokeWidth={14}
             strokeLinecap="round"
           />
         ))}
@@ -91,7 +101,7 @@ export default function PHRIGauge({ score, riskLevel }: Props) {
         <path
           d={arcPath(CX, CY, R, START_DEG, END_DEG)}
           fill="none"
-          stroke="var(--border-hover)"
+          stroke="var(--border-glow)"
           strokeWidth={6}
           strokeLinecap="round"
         />
@@ -103,6 +113,7 @@ export default function PHRIGauge({ score, riskLevel }: Props) {
           stroke={color}
           strokeWidth={6}
           strokeLinecap="round"
+          filter="url(#gauge-glow)"
         />
 
         {/* Tick marks */}
@@ -133,10 +144,11 @@ export default function PHRIGauge({ score, riskLevel }: Props) {
           stroke={color}
           strokeWidth={2.5}
           strokeLinecap="round"
+          filter="url(#gauge-glow)"
         />
 
         {/* Centre dot */}
-        <circle cx={CX} cy={CY} r={4.5} fill={color} />
+        <circle cx={CX} cy={CY} r={4.5} fill={color} filter="url(#gauge-glow)" />
 
         {/* Score text */}
         <text x={CX} y={CY - 10} textAnchor="middle" dominantBaseline="middle"
