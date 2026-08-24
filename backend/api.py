@@ -813,11 +813,28 @@ def get_all_alerts():
     off_alerts = [dict(r) for r in cursor.fetchall()]
     conn.close()
     
-    # Combine lists
+    # Deduplicate AI alerts
+    seen_ai = set()
+    deduped_ai = []
+    for alert in ai_alerts:
+        key = (alert['title'], alert['message'], alert['location'])
+        if key not in seen_ai:
+            seen_ai.add(key)
+            deduped_ai.append(alert)
+            
+    # Deduplicate Official alerts
+    seen_off = set()
+    deduped_off = []
+    for alert in off_alerts:
+        key = (alert['title'], alert['message'], alert['location'])
+        if key not in seen_off:
+            seen_off.add(key)
+            deduped_off.append(alert)
+            
     return {
-        "ai_alerts": ai_alerts,
-        "official_alerts": off_alerts,
-        "total_active": len(ai_alerts) + len(off_alerts)
+        "ai_alerts": deduped_ai,
+        "official_alerts": deduped_off,
+        "total_active": len(deduped_ai) + len(deduped_off)
     }
 
 @app.get("/api/alerts/official")
